@@ -30,11 +30,179 @@
             <artifactId>pgvector</artifactId>
             <version>${pgvector-java.version}</version>
         </dependency>
+       <dependency>
+         <groupId>com.google.cloud.sql</groupId>
+        <artifactId>postgres-socket-factory</artifactId>
+        <version>1.21.0</version>
+       </dependency>
+
+       <dependency>
+        <groupId>com.google.oauth-client</groupId>
+        <artifactId>google-oauth-client</artifactId>
+        <version>1.36.0</version>
+        <exclusions>
+            <exclusion>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client-gson</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            </exclusion>
+                <exclusion>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+
+    <dependency>
+        <groupId>com.google.api-client</groupId>
+        <artifactId>google-api-client</artifactId>
+        <version>2.6.0</version>
+        <exclusions>
+            <exclusion>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client-gson</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-credentials</artifactId>
+            </exclusion>
+             <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency> 
+
+    <dependency>
+        <groupId>com.google.apis</groupId>
+        <artifactId>google-api-services-sqladmin</artifactId>
+        <version>v1beta4-rev20240925-2.0.0</version>
+        <exclusions>
+            <exclusion>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency> 
+
+     <dependency>
+        <groupId>com.google.cloud.sql</groupId>
+        <artifactId>jdbc-socket-factory-core</artifactId>
+        <version>1.21.0</version>
+        <exclusions>
+            <exclusion>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency> 
+
+    <dependency>
+        <groupId>com.google.auth</groupId>
+        <artifactId>google-auth-library-oauth2-http</artifactId>
+        <version>1.27.0</version>
+        <exclusions>
+            <exclusion>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client-gson</artifactId>
+            </exclusion>
+             <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            </exclusion>
+             <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+            </exclusion>
+             <exclusion>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency> 
+
+    <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>33.1.0-jre</version>
+        <exclusions>
+            <exclusion>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.j2objc</groupId>
+            <artifactId>j2objc-annotations</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency> 
+
+     <dependency>
+        <groupId>com.google.http-client</groupId>
+        <artifactId>google-http-client</artifactId>
+        <version>1.44.2</version>
+        <exclusions>
+            <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-context</artifactId>
+            </exclusion>
+            <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency> 
+
+    <dependency>
+        <groupId>com.google.http-client</groupId>
+        <artifactId>google-http-client-apache-v2</artifactId>
+        <version>1.44.2</version>
+        <exclusions>
+            <exclusion>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency> 
+    
+
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
-        </dependency>
+        </dependency> 
+        
     </dependencies>
 
 </project>
