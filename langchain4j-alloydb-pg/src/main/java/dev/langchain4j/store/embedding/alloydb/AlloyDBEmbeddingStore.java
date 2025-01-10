@@ -6,6 +6,8 @@ import java.util.logging.Logger;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -14,18 +16,46 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final Logger log = Logger.getLogger(AlloyDBEmbeddingStore.class.getName());
     private final AlloyDBEngine engine;
+    private final String tableName;
+    private String contentColumn;
+    private String embeddingColumn;
+    private List<String> metadataColumns;
+    private List<String> ignoreMetadataColumns;
+    private Boolean overwriteExisting;
+    // change to QueryOptions class when implemented
+    private List<String> queryOptions;
 
-    public AlloyDBEmbeddingStore(String database,
-            String user,
-            String password,
-            String project_id,
-            String cluster,
-            String region,
-            String instance,
-            String ipType,
-            String iamAccountEmail
-    ) {
-        engine = new AlloyDBEngine(database, user, password, project_id, cluster, region, instance, ipType, iamAccountEmail);
+
+    public AlloyDBEmbeddingStore(AlloyDBEngine engine, String tableName) {
+        this.engine = ensureNotNull(engine, "engine");
+        this.tableName = ensureNotBlank(tableName, "tableName");
+        contentColumn = "content";
+        embeddingColumn = "embedding";
+        overwriteExisting = false;
+    }
+
+    public void setContentColumn(String contentColumn) {
+        this.contentColumn = contentColumn;
+    }
+
+    public void setEmbeddingColumn(String embeddingColumn) {
+        this.embeddingColumn = embeddingColumn;
+    }
+
+    public void setMetadataColumns(List<String> metadataColumns) {
+        this.metadataColumns = metadataColumns;
+    }
+
+    public void setIgnoreMetadataColumns(List<String> ignoreMetadataColumns) {
+        this.ignoreMetadataColumns = ignoreMetadataColumns;
+    }
+
+    public void setOverwriteExisting(Boolean overwriteExisting) {
+        this.overwriteExisting = overwriteExisting;
+    }
+
+    public void setQueryOptions(List<String> queryOptions) {
+        this.queryOptions = queryOptions;
     }
 
     @Override
