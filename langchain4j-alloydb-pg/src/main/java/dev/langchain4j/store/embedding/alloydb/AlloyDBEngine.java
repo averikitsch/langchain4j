@@ -18,16 +18,16 @@ public class AlloyDBEngine {
 
     /**
      * Constructor for AlloyDBEngine
-     * 
-     * @param projectId         (Required) AlloyDB project id
-     * @param region            (Required) AlloyDB cluster region
-     * @param cluster           (Required) AlloyDB cluster
-     * @param instance          (Required) AlloyDB instance
-     * @param database          (Required) AlloyDB database
-     * @param user              (Optional) AlloyDB database user
-     * @param password          (Optional) AlloyDB database password
-     * @param ipType            (Required) type of IP to be used (PUBLIC, PSC)
-     * @param iamAccountEmail   (Optional) IAM account email
+     *
+     * @param projectId (Required) AlloyDB project id
+     * @param region (Required) AlloyDB cluster region
+     * @param cluster (Required) AlloyDB cluster
+     * @param instance (Required) AlloyDB instance
+     * @param database (Required) AlloyDB database
+     * @param user (Optional) AlloyDB database user
+     * @param password (Optional) AlloyDB database password
+     * @param ipType (Required) type of IP to be used (PUBLIC, PSC)
+     * @param iamAccountEmail (Optional) IAM account email
      */
     public AlloyDBEngine(
             String projectId,
@@ -42,7 +42,7 @@ public class AlloyDBEngine {
     ) {
         Boolean enableIAMAuth = false;
         if (user != null && !user.isBlank() && password != null && !password.isBlank()) {
-                enableIAMAuth = false;
+            enableIAMAuth = false;
         } else {
             enableIAMAuth = true;
             if (iamAccountEmail != null && !iamAccountEmail.isBlank()) {
@@ -96,11 +96,13 @@ public class AlloyDBEngine {
     public void initChatHistoryTable() {
         //to be implemented
     }
+
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
+
         private String projectId;
         private String region;
         private String cluster;

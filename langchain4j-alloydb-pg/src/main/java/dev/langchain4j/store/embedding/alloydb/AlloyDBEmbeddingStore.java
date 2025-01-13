@@ -25,18 +25,23 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     // change to QueryOptions class when implemented
     private List<String> queryOptions;
 
-
     /**
      * Constructor for AlloyDBEmbeddingStore
-     * 
-     * @param engine                    The connection object to use
-     * @param tableName                 The name of the table (no default, user must specify)
-     * @param contentColumn             (Optional,  Default: “content”) Column that represent a Document’s page content
-     * @param embeddingColumn           (Optional,  Default: “embedding”) Column for embedding vectors. The embedding is generated from the document value
-     * @param metadataColumns           (Optional) Column(s) that represent a document’s metadata 
-     * @param ignoreMetadataColumns     (Optional) Column(s) to ignore in pre-existing tables for a document’s 
-     * @param overwriteExisting         (Optional, Default: False) Boolean argument for truncating table before insertion
-     * @param queryOptions              (Optional) QueryOptions class with vector search parameters
+     *
+     * @param engine The connection object to use
+     * @param tableName The name of the table (no default, user must specify)
+     * @param contentColumn (Optional, Default: “content”) Column that represent
+     * a Document’s page content
+     * @param embeddingColumn (Optional, Default: “embedding”) Column for
+     * embedding vectors. The embedding is generated from the document value
+     * @param metadataColumns (Optional) Column(s) that represent a document’s
+     * metadata
+     * @param ignoreMetadataColumns (Optional) Column(s) to ignore in
+     * pre-existing tables for a document’s
+     * @param overwriteExisting (Optional, Default: False) Boolean argument for
+     * truncating table before insertion
+     * @param queryOptions (Optional) QueryOptions class with vector search
+     * parameters
      */
     public AlloyDBEmbeddingStore(AlloyDBEngine engine, String tableName, String contentColumn, String embeddingColumn, List<String> metadataColumns, List<String> ignoreMetadataColumns, Boolean overwriteExisting, List<String> queryOptions) {
         this.engine = ensureNotNull(engine, "engine");
@@ -48,7 +53,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.overwriteExisting = overwriteExisting;
         this.queryOptions = queryOptions;
     }
-    
+
     @Override
     public String add(Embedding embedding) {
         throw new UnsupportedOperationException("Not supported yet.");
@@ -80,6 +85,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     public static class Builder {
+
         private AlloyDBEngine engine;
         private String tableName;
         private String contentColumn;
@@ -116,12 +122,12 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             return this;
         }
 
-        public Builder metadataColumns(List<String>  metadataColumns) {
+        public Builder metadataColumns(List<String> metadataColumns) {
             this.metadataColumns = metadataColumns;
             return this;
         }
 
-        public Builder ignoreMetadataColumns(List<String>  ignoreMetadataColumns) {
+        public Builder ignoreMetadataColumns(List<String> ignoreMetadataColumns) {
             this.ignoreMetadataColumns = ignoreMetadataColumns;
             return this;
         }
@@ -131,7 +137,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             return this;
         }
 
-        public Builder queryOptions(List<String>  queryOptions) {
+        public Builder queryOptions(List<String> queryOptions) {
             this.queryOptions = queryOptions;
             return this;
         }
