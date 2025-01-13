@@ -52,8 +52,8 @@ public class AlloyDBEngine {
                 user = getIAMPrincipalEmail();
             }
         }
-        String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId)).append("/locations/")
-                .append(ensureNotBlank(region)).append("/clusters/").append(ensureNotBlank(cluster)).append("/instances/").append(ensureNotBlank(instance)).toString();
+        String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId, "projectId")).append("/locations/")
+                .append(ensureNotBlank(region, "region")).append("/clusters/").append(ensureNotBlank(cluster, "cluster")).append("/instances/").append(ensureNotBlank(instance, "instance")).toString();
         dataSource = createDataSource(database, user, password, instanceName, ipType, enableIAMAuth);
     }
 
