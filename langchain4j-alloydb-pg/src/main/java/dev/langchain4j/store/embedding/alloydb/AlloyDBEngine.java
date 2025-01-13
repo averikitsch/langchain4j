@@ -16,6 +16,19 @@ public class AlloyDBEngine {
     private static final Logger log = Logger.getLogger(AlloyDBEngine.class.getName());
     private DataSource dataSource;
 
+    /**
+     * Constructor for AlloyDBEngine
+     * 
+     * @param projectId         (Required) AlloyDB project id
+     * @param region            (Required) AlloyDB cluster region
+     * @param cluster           (Required) AlloyDB cluster
+     * @param instance          (Required) AlloyDB instance
+     * @param database          (Required) AlloyDB database
+     * @param user              (Optional) AlloyDB database user
+     * @param password          (Optional) AlloyDB database password
+     * @param ipType            (Required) type of IP to be used (PUBLIC, PSC)
+     * @param iamAccountEmail   (Optional) IAM account email
+     */
     public AlloyDBEngine(
             String projectId,
             String region,
@@ -28,10 +41,8 @@ public class AlloyDBEngine {
             String iamAccountEmail
     ) {
         Boolean enableIAMAuth = false;
-        if (user != null && !user.isBlank()) {
-            if (password != null && !password.isBlank()) {
+        if (user != null && !user.isBlank() && password != null && !password.isBlank()) {
                 enableIAMAuth = false;
-            }
         } else {
             enableIAMAuth = true;
             if (iamAccountEmail != null && !iamAccountEmail.isBlank()) {
@@ -41,8 +52,8 @@ public class AlloyDBEngine {
                 user = getIAMPrincipalEmail();
             }
         }
-        String instanceName = new StringBuilder("projects/").append(projectId).append("/locations/")
-                .append(region).append("/clusters/").append(cluster).append("/instances/").append(instance).toString();
+        String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId)).append("/locations/")
+                .append(ensureNotBlank(region)).append("/clusters/").append(ensureNotBlank(cluster)).append("/instances/").append(ensureNotBlank(instance)).toString();
         dataSource = createDataSource(database, user, password, instanceName, ipType, enableIAMAuth);
     }
 
@@ -99,6 +110,9 @@ public class AlloyDBEngine {
         private String password;
         private String ipType;
         private String iamAccountEmail;
+
+        public Builder() {
+        }
 
         public Builder projectId(String projectId) {
             this.projectId = projectId;
