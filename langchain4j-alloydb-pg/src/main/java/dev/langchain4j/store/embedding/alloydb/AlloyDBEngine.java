@@ -1,15 +1,28 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.readBytes;
+import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import dev.langchain4j.store.embedding.alloydb.index.HSNWIndex;
+import dev.langchain4j.store.embedding.alloydb.index.IndexType;
 
 public class AlloyDBEngine {
 
@@ -40,16 +53,15 @@ public class AlloyDBEngine {
             String ipType,
             String iamAccountEmail
     ) {
-        Boolean enableIAMAuth = false;
-        if (user != null && !user.isBlank() && password != null && !password.isBlank()) {
+        Boolean enableIAMAuth;
+        if (isNotNullOrBlank(user) && isNotNullOrBlank(password)) {
             enableIAMAuth = false;
         } else {
             enableIAMAuth = true;
-            if (iamAccountEmail != null && !iamAccountEmail.isBlank()) {
+            if (isNotNullOrBlank(iamAccountEmail)) {
                 user = iamAccountEmail;
             } else {
-                // to be implemented
-                user = getIAMPrincipalEmail();
+                user = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
             }
         }
         String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId, "projectId")).append("/locations/")
@@ -66,11 +78,11 @@ public class AlloyDBEngine {
             Boolean enableIAMAuth
     ) {
         HikariConfig config = new HikariConfig();
-        config.setUsername(ensureNotBlank(user, "user")); // e.g., "postgres"
+        config.setUsername(ensureNotBlank(user, "user"));
         if (enableIAMAuth) {
             config.addDataSourceProperty("alloydbEnableIAMAuth", "true");
         } else {
-            config.setPassword(ensureNotBlank(password, "password")); // e.g., "secret-password"
+            config.setPassword(ensureNotBlank(password, "password"));
         }
         config.setJdbcUrl(String.format("jdbc:postgresql:///%s", ensureNotBlank(database, "database")));
         config.addDataSourceProperty("socketFactory", "com.google.cloud.alloydb.SocketFactory");
@@ -81,16 +93,77 @@ public class AlloyDBEngine {
     }
 
     private String getIAMPrincipalEmail() {
-        //to be implemented
-        return "";
+        try {
+            GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
+            String accessToken = credentials.refreshAccessToken().getTokenValue();
+
+            String oauth2APIURL = "https://oauth2.googleapis.com/tokeninfo?access_token=" + accessToken;
+            byte[] responseBytes = readBytes(oauth2APIURL);
+            JsonObject responseJson = JsonParser.parseString(new String(responseBytes)).getAsJsonObject();
+            if (responseJson.has("email")) {
+                return responseJson.get("email").getAsString();
+            } else {
+                throw new RuntimeException("unable to load IAM principal email");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("unable to load IAM principal email", e);
+        }
     }
 
     public Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
+        Connection connection = dataSource.getConnection();
+        Statement statement = connection.createStatement();
+        statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
+        return connection;
     }
 
-    public void initVectorStoreTable() {
-        //to be implemented
+    /**
+     * create a non-default VectorStore table
+     *
+     * @param tableName (Required) the table name to create - does not append a
+     * suffix or prefix!
+     * @param vectorSize (Required) create a vector column with custom vector
+     * size
+     * @param contentColumn (Default: "content") create the content column with
+     * custom name
+     * @param embeddingColumn (Default: "embedding") create the embedding column
+     * with custom name
+     * @param metadataColumns (Default: "metadata") list of SQLAlchemy Columns
+     * to create for custom metadata
+     * @param indexType (Default: HNSWIndex) set the index type, supported
+     * types: HNSWIndex, IVFFLATIndex, KNNIndex
+     * @param overwriteExisting (Default: False) boolean for dropping table
+     * before insertion
+     * @param storeMetadata (Default: True) boolean to store extra metadata in
+     * metadata column if not described in “metadata” field list
+     */
+    public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, List<MetadataColumn> metadataColumns, IndexType indexType, Boolean overwriteExisting, Boolean storeMetadata) {
+        Connection connection;
+        ensureNotBlank(tableName, "tableName");
+
+        try {
+            connection = getConnection();
+            Statement statement = connection.createStatement();
+            if (overwriteExisting) {
+                statement.executeUpdate(String.format("DROP TABLE IF EXISTS %s", tableName));
+            }
+            if (isNullOrBlank(contentColumn)) {
+                contentColumn = "content";
+            }
+            if (isNullOrBlank(embeddingColumn)) {
+                embeddingColumn = "embedding";
+            }
+            String query = String.format("CREATE TABLE IF NOT EXISTS %s (embedding_id UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL, %s)", tableName,
+                    contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
+            statement.executeUpdate(query);
+            if (indexType == null) {
+                indexType = new HSNWIndex();
+            }
+            query = indexType.generateCreateIndexQuery();
+            statement.executeUpdate(query);
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public void initChatHistoryTable() {
