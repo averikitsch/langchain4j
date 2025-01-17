@@ -11,4 +11,9 @@ public class KnnIndex implements IndexType {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    @Override
+    public String generateParameterSetting() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
 }

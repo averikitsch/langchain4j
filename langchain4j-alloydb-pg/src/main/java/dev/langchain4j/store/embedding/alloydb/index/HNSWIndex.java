@@ -6,7 +6,7 @@ import java.util.List;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import dev.langchain4j.store.embedding.alloydb.QueryOptions;
 
-public class HNSWIndex implements IndexType {
+public class HNSWIndex implements VectorIndex {
 
     private final String tableName;
     private final String embeddingColumn;

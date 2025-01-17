@@ -5,14 +5,13 @@ public class QueryOptions {
     private final Integer probes;
 
     public QueryOptions(Integer efSearch, Integer probes) {
-        this.efSearch = efSearch;
-        this.probes = probes;
+        this.efSearch = (efSearch != null)?efSearch:40;
+        this.probes = (probes != null)?probes:1;
     }
 
     public Integer getEfSearch() {
         return this.efSearch;
     }
-
 
     public Integer getProbes() {
         return this.probes;

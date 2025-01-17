@@ -21,8 +21,8 @@ import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import dev.langchain4j.store.embedding.alloydb.index.HSNWIndex;
-import dev.langchain4j.store.embedding.alloydb.index.IndexType;
+import dev.langchain4j.store.embedding.alloydb.index.HNSWIndex;
+import dev.langchain4j.store.embedding.alloydb.index.VectorIndex;
 
 public class AlloyDBEngine {
 
@@ -137,7 +137,7 @@ public class AlloyDBEngine {
      * @param storeMetadata (Default: True) boolean to store extra metadata in
      * metadata column if not described in “metadata” field list
      */
-    public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, List<MetadataColumn> metadataColumns, IndexType indexType, Boolean overwriteExisting, Boolean storeMetadata) {
+    public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, List<MetadataColumn> metadataColumns, VectorIndex vectorIndex, Boolean overwriteExisting, Boolean storeMetadata) {
         Connection connection;
         ensureNotBlank(tableName, "tableName");
 
@@ -156,10 +156,11 @@ public class AlloyDBEngine {
             String query = String.format("CREATE TABLE IF NOT EXISTS %s (embedding_id UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL, %s)", tableName,
                     contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
             statement.executeUpdate(query);
-            if (indexType == null) {
-                indexType = new HSNWIndex();
+            if (vectorIndex == null) {
+                // default index
+                vectorIndex = new HNSWIndex(tableName, contentColumn, null, null, null, null, null);
             }
-            query = indexType.generateCreateIndexQuery();
+            query = vectorIndex.generateCreateIndexQuery();
             statement.executeUpdate(query);
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
