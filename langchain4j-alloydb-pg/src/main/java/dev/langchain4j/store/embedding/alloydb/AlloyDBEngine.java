@@ -145,7 +145,7 @@ public class AlloyDBEngine {
             connection = getConnection();
             Statement statement = connection.createStatement();
             if (overwriteExisting) {
-                statement.executeUpdate(String.format("DROP TABLE IF EXISTS %s", tableName));
+                statement.executeUpdate(String.format("DROP TABLE %s", tableName));
             }
             if (isNullOrBlank(contentColumn)) {
                 contentColumn = "content";
@@ -153,8 +153,17 @@ public class AlloyDBEngine {
             if (isNullOrBlank(embeddingColumn)) {
                 embeddingColumn = "embedding";
             }
+            String metadataClause = "";
+            if (metadataColumns != null && !metadataColumns.isEmpty()) {
+                if (!storeMetadata) {
+                    throw new IllegalStateException("storeMetadata option is disabled but metadata was provided");
+                }
+                metadataClause = metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(","));
+            } else if (storeMetadata) {
+                throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
+            }
             String query = String.format("CREATE TABLE IF NOT EXISTS %s (embedding_id UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL, %s)", tableName,
-                    contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
+                    contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataClause);
             statement.executeUpdate(query);
             if (vectorIndex == null) {
                 // default index
@@ -163,7 +172,7 @@ public class AlloyDBEngine {
             query = vectorIndex.generateCreateIndexQuery();
             statement.executeUpdate(query);
         } catch (SQLException ex) {
-            throw new RuntimeException(ex);
+            throw new RuntimeException(String.format("Failed to initialize vector store table: %s", tableName), ex);
         }
     }
 

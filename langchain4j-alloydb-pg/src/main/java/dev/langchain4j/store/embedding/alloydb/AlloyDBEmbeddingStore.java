@@ -82,7 +82,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
