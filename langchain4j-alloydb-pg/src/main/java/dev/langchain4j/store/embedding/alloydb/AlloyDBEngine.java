@@ -5,10 +5,12 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.gson.JsonObject;
@@ -26,8 +28,8 @@ import dev.langchain4j.store.embedding.alloydb.index.VectorIndex;
 
 public class AlloyDBEngine {
 
-    private static final Logger log = Logger.getLogger(AlloyDBEngine.class.getName());
-    private DataSource dataSource;
+    private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
+    private final DataSource dataSource;
 
     /**
      * Constructor for AlloyDBEngine
@@ -54,15 +56,21 @@ public class AlloyDBEngine {
             String iamAccountEmail
     ) {
         Boolean enableIAMAuth;
-        if (isNotNullOrBlank(user) && isNotNullOrBlank(password)) {
-            enableIAMAuth = false;
-        } else {
+        if (isNullOrBlank(user) && isNullOrBlank(password)) {
             enableIAMAuth = true;
             if (isNotNullOrBlank(iamAccountEmail)) {
+                log.debug("Found iamAccountEmail");
                 user = iamAccountEmail;
             } else {
+                log.debug("Retrieving IAM principal email");
                 user = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
             }
+        }
+        if (isNotNullOrBlank(user) && isNotNullOrBlank(password)) {
+            enableIAMAuth = false;
+            log.debug("Found user and password, IAM Auth disabled");
+        } else {
+            throw new IllegalStateException("Either one of user or password is blank, expected both user and password to be valid credentials or empty");
         }
         String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId, "projectId")).append("/locations/")
                 .append(ensureNotBlank(region, "region")).append("/clusters/").append(ensureNotBlank(cluster, "cluster")).append("/instances/").append(ensureNotBlank(instance, "instance")).toString();
@@ -199,46 +207,73 @@ public class AlloyDBEngine {
         public Builder() {
         }
 
+        /**
+         * @param projectId (Required) AlloyDB project id
+         */
         public Builder projectId(String projectId) {
             this.projectId = projectId;
             return this;
         }
 
+        /**
+         * @param region (Required) AlloyDB cluster region
+         */
         public Builder region(String region) {
             this.region = region;
             return this;
         }
 
+        /**
+         * @param cluster (Required) AlloyDB cluster
+         */
         public Builder cluster(String cluster) {
             this.cluster = cluster;
             return this;
         }
 
+        /**
+         * @param instance (Required) AlloyDB instance
+         */
         public Builder instance(String instance) {
             this.instance = instance;
             return this;
         }
 
+        /**
+         * @param database (Required) AlloyDB database
+         */
         public Builder database(String database) {
             this.database = database;
             return this;
         }
 
+        /**
+         * @param user (Optional) AlloyDB database user
+         */
         public Builder user(String user) {
             this.user = user;
             return this;
         }
 
+        /**
+         * @param password (Optional) AlloyDB database password
+         */
         public Builder password(String password) {
             this.password = password;
             return this;
         }
 
+        /**
+         * @param ipType (Required) type of IP to be used (PUBLIC, PSC)
+         */
         public Builder ipType(String ipType) {
             this.ipType = ipType;
             return this;
         }
 
+        /**
+         * @param iamAccountEmail (Optional) IAM account email
+         */
         public Builder iamAccountEmail(String iamAccountEmail) {
             this.iamAccountEmail = iamAccountEmail;
             return this;

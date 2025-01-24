@@ -47,6 +47,7 @@ public class AlloyDBEngineTest {
         user = System.getenv("ALLOYDB_USER");
         password = System.getenv("ALLOYDB_PASSWORD");
         IAM_EMAIL = System.getenv("ALLOYDB_IAM_EMAIL");
+        System.out.println(String.format("***%s, %s, %s", user, password, instance));
 
         engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).user(user).password(password).ipType("PUBLIC").build();
 
@@ -55,7 +56,7 @@ public class AlloyDBEngineTest {
     }
 
     @AfterEach
-    public static void afterEach() throws SQLException {
+    public void afterEach() throws SQLException {
         defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE %s", TABLE_NAME));
     }
 

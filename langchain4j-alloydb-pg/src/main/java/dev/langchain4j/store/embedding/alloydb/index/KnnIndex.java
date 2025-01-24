@@ -1,6 +1,6 @@
 package dev.langchain4j.store.embedding.alloydb.index;
 
-public class KnnIndex implements IndexType {
+public class KnnIndex implements VectorIndex {
 
     public KnnIndex() {
         // TODO Auto-generated method stub
