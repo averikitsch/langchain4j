@@ -1,10 +1,9 @@
 package dev.langchin4j.store.embedding.alloydb;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +23,7 @@ import dev.langchain4j.store.embedding.alloydb.index.IVFFlatIndex;
 public class AlloyDBEngineTest {
 
     private static final String TABLE_NAME = "JAVA_ENGINE_TEST_TABLE";
+    private static final String CUSTOM_TABLE_NAME = "JAVA_ENGINE_TEST_CUSTOM_TABLE";
     private static final Integer VECTOR_SIZE = 768;
     private static String IAM_EMAIL;
     private static String projectId;
@@ -47,7 +47,6 @@ public class AlloyDBEngineTest {
         user = System.getenv("ALLOYDB_USER");
         password = System.getenv("ALLOYDB_PASSWORD");
         IAM_EMAIL = System.getenv("ALLOYDB_IAM_EMAIL");
-        System.out.println(String.format("***%s, %s, %s", user, password, instance));
 
         engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).user(user).password(password).ipType("PUBLIC").build();
 
@@ -57,7 +56,8 @@ public class AlloyDBEngineTest {
 
     @AfterEach
     public void afterEach() throws SQLException {
-        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE %s", TABLE_NAME));
+        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS %s", TABLE_NAME));
+        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS %s", CUSTOM_TABLE_NAME));
     }
 
     @AfterAll
@@ -65,17 +65,27 @@ public class AlloyDBEngineTest {
         defaultConnection.close();
     }
 
-    private void verifyColumns(String tablenName, Set<String> expectedColumns) throws SQLException {
+    private void verifyColumns(String tableName, Set<String> expectedColumns) throws SQLException {
         Set<String> actualNames = new HashSet<>();
 
-        try (Connection connection = engine.getConnection(); ResultSet resultSet = connection.getMetaData().getColumns(null, connection.getSchema(), tablenName, "%")) {
-            while (resultSet.next()) {
-                assertThat(resultSet.getString("TABLE_NAME")).isEqualTo(tablenName);
-                actualNames.add(resultSet.getString("COLUMN_NAME"));
+        try (ResultSet resultSet = engine.getConnection().createStatement().executeQuery("SELECT * FROM " + tableName)) {
+            ResultSetMetaData rsMeta = resultSet.getMetaData();
+            int columnCount = rsMeta.getColumnCount();
+            for (int i = 1; i <= columnCount; i++) {
+                actualNames.add(rsMeta.getColumnName(i));
+
+            }
+            assertThat(actualNames).isEqualTo(expectedColumns);
+        }
+    }
+
+    private void verifyIndex(String tableName, String type, String expected) throws SQLException {
+        try (Connection connection = engine.getConnection()) {
+            ResultSet indexes = connection.createStatement().executeQuery(String.format("SELECT indexdef FROM pg_indexes WHERE tablename = '%s' AND indexname = '%s_%s_index'", tableName.toLowerCase(), tableName.toLowerCase(), type));
+            while (indexes.next()) {
+                assertThat(indexes.getString("indexdef")).contains(expected);
             }
         }
-
-        assertThat(actualNames).isEqualTo(expectedColumns);
     }
 
     @Test
@@ -91,28 +101,23 @@ public class AlloyDBEngineTest {
 
         verifyColumns(TABLE_NAME, expectedNames);
 
-        Connection connection = engine.getConnection();
-        DatabaseMetaData dbMetadata = connection.getMetaData();
-        ResultSet indexes = dbMetadata.getIndexInfo(null, connection.getSchema(), TABLE_NAME, true, false);
-        while (indexes.next()) {
-            // TODO look for the name of hnsw
-            System.out.println(indexes.getString("INDEX_NAME"));
-        }
+        verifyIndex(CUSTOM_TABLE_NAME, "hnsw", "USING hnsw (custom_embedding_column)");        
+
     }
 
     @Test
     void initialize_vector_table_overwrite_true() throws SQLException {
         // default options
         engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, false);
-        engine.initVectorStoreTable("new_table_overwrite", VECTOR_SIZE, null, null, null, null, null, true);
+        // custom
+        engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, "overwritten", null, null, null, true, false);
+        
+        Set<String> expectedColumns = new HashSet<>();
+        expectedColumns.add("embedding_id");
+        expectedColumns.add("overwritten");
+        expectedColumns.add("embedding");
 
-        Connection connection = engine.getConnection();
-
-        DatabaseMetaData dbMetadata = connection.getMetaData();
-        ResultSet resultSet = dbMetadata.getColumns(null, connection.getSchema(), "new_table_overwrite", "%");
-        assertThat(resultSet.getString("TABLE_NAME")).isEqualTo("new_table_overwrite");
-
-        connection.createStatement().executeUpdate("DROP TABLE new_table_overwrite");
+        verifyColumns(TABLE_NAME, expectedColumns);
 
     }
 
@@ -120,58 +125,20 @@ public class AlloyDBEngineTest {
     void initialize_vector_table_with_custom_options() throws SQLException {
         List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
-        metadataColumns.add(new MetadataColumn("source", "TEXT", true));
+        metadataColumns.add(new MetadataColumn("source", "TEXT", false));
+        engine.initVectorStoreTable(CUSTOM_TABLE_NAME, 1000, "custom_content_column", "custom_embedding_column", metadataColumns, new IVFFlatIndex(CUSTOM_TABLE_NAME, "custom_embedding_column", null, null, null, null), false, true);
 
-        engine.initVectorStoreTable("custom_table_name", 1000, "custom_content_column", "custom_embedding_column", metadataColumns, new IVFFlatIndex(TABLE_NAME, "custom_embedding_column", null, null, null, null), false, true);
-        // metadata
-        // embedding column
-        // vector size
-
-        /**
-         * // TODO verify vector size SELECT attname AS column_name, atttypmod
-         * - 4 AS vector_size FROM pg_attribute WHERE attrelid =
-         * 'your_table_name'::regclass AND atttypid = 'vector'::regtype;
-         */
         Set<String> expectedColumns = new HashSet<>();
+        expectedColumns.add("embedding_id");
         expectedColumns.add("custom_content_column");
         expectedColumns.add("custom_embedding_column");
         expectedColumns.add("page");
         expectedColumns.add("source");
 
-        verifyColumns("custom_table_name", expectedColumns);
+        verifyColumns(CUSTOM_TABLE_NAME, expectedColumns);
 
-        Connection connection = engine.getConnection();
-        Statement statement = connection.createStatement();
+        verifyIndex(CUSTOM_TABLE_NAME, "ivfflat", "USING ivfflat (custom_embedding_column)");        
 
-        ResultSet resultSet = statement.executeQuery("SELECT attname AS column_name, atttypmod - 4 AS vector_size FROM pg_attribute WHERE attrelid = 'your_table_name'::regclass AND atttypid = 'vector'::regtype");
-        assertThat(resultSet.getInt("vector_size")).isEqualTo(1000);
-
-        DatabaseMetaData dbMetadata = connection.getMetaData();
-        ResultSet indexes = dbMetadata.getIndexInfo(null, connection.getSchema(), TABLE_NAME, true, false);
-        while (indexes.next()) {
-            // TODO look for the name of IVFFlatIndex
-            System.out.println(indexes.getString("INDEX_NAME"));
-        }
-        connection.createStatement().executeUpdate("DROP TABLE custom_table_name");
-    }
-
-    @Test
-    void initialize_vector_table_from_existing_table() throws SQLException {
-        engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, false);
-
-        List<MetadataColumn> metadataColumns = new ArrayList<>();
-        metadataColumns.add(new MetadataColumn("page", "TEXT", true));
-        metadataColumns.add(new MetadataColumn("source", "TEXT", true));
-
-        engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, "custom_content_column", "custom_embedding_column", metadataColumns, new IVFFlatIndex(TABLE_NAME, "custom_embedding_column", null, null, null, null), true, true);
-        // table should be updated
-        Set<String> expectedColumns = new HashSet<>();
-        expectedColumns.add("custom_content_column");
-        expectedColumns.add("custom_embedding_column");
-        expectedColumns.add("page");
-        expectedColumns.add("source");
-
-        verifyColumns("custom_table_name", expectedColumns);
     }
 
     @Test
@@ -193,18 +160,18 @@ public class AlloyDBEngineTest {
             engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, false, false);
         });
 
-        assertThat(exception.getMessage()).contains("Failed to initialize vector store table: " + TABLE_NAME);
+        assertThat(exception.getMessage()).contains(String.format("Overwrite option is false but table %s is present", TABLE_NAME));
 
     }
 
     @Test
-    void table_create_fails_when_metadata_and_ignore_metadata() {
+    void table_create_fails_when_metadata_present_and_ignore_metadata_true() {
         List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
         metadataColumns.add(new MetadataColumn("source", "TEXT", true));
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, "custom_content_column", "custom_embedding_column", metadataColumns, null, true, false);
+            engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, "custom_content_column", "custom_embedding_column", metadataColumns, null, false, false);
         });
 
         assertThat(exception.getMessage()).contains("storeMetadata option is disabled but metadata was provided");
@@ -213,15 +180,17 @@ public class AlloyDBEngineTest {
     @Test
     void create_engine_with_iam_auth() throws SQLException {
         AlloyDBEngine iam_engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).ipType("PUBLIC").iamAccountEmail(IAM_EMAIL).build();
-        Connection connection = iam_engine.getConnection();
-        assertThat(connection.createStatement().executeQuery("SELECT 1").getInt(1)).isEqualTo(1);
+        try (Connection connection = iam_engine.getConnection();) {
+            assertThat(connection.createStatement().executeQuery("SELECT 1").getInt(1)).isEqualTo(1);
+        }
     }
 
     @Test
     void create_engine_with_get_iam_email() throws SQLException {
         AlloyDBEngine iam_engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).ipType("PUBLIC").build();
-        Connection connection = iam_engine.getConnection();
-        assertThat(connection.createStatement().executeQuery("SELECT 1").getInt(1)).isEqualTo(1);
+        try (Connection connection = iam_engine.getConnection();) {
+            assertThat(connection.createStatement().executeQuery("SELECT 1").getInt(1)).isEqualTo(1);
+        }
     }
 
 }

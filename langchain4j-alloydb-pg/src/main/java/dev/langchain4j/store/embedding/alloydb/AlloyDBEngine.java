@@ -2,6 +2,7 @@ package dev.langchain4j.store.embedding.alloydb;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
@@ -65,8 +66,7 @@ public class AlloyDBEngine {
                 log.debug("Retrieving IAM principal email");
                 user = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
             }
-        }
-        if (isNotNullOrBlank(user) && isNotNullOrBlank(password)) {
+        } else if (isNotNullOrBlank(user) && isNotNullOrBlank(password)) {
             enableIAMAuth = false;
             log.debug("Found user and password, IAM Auth disabled");
         } else {
@@ -87,6 +87,7 @@ public class AlloyDBEngine {
     ) {
         HikariConfig config = new HikariConfig();
         config.setUsername(ensureNotBlank(user, "user"));
+        System.out.println(user);
         if (enableIAMAuth) {
             config.addDataSourceProperty("alloydbEnableIAMAuth", "true");
         } else {
@@ -146,13 +147,17 @@ public class AlloyDBEngine {
      * metadata column if not described in “metadata” field list
      */
     public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, List<MetadataColumn> metadataColumns, VectorIndex vectorIndex, Boolean overwriteExisting, Boolean storeMetadata) {
-        Connection connection;
         ensureNotBlank(tableName, "tableName");
+        try(Connection connection = getConnection();) {
 
-        try {
-            connection = getConnection();
             Statement statement = connection.createStatement();
-            if (overwriteExisting) {
+            if (overwriteExisting == null || !overwriteExisting) {
+                ResultSet rs = connection.getMetaData().getTables(null, null, tableName.toLowerCase(), null);
+                if(rs.next()) {
+                    throw new IllegalStateException(String.format("Overwrite option is false but table %s is present", tableName));
+                }
+            } else {
+                log.debug(String.format("overwritting table %s", tableName));
                 statement.executeUpdate(String.format("DROP TABLE %s", tableName));
             }
             if (isNullOrBlank(contentColumn)) {
@@ -166,16 +171,16 @@ public class AlloyDBEngine {
                 if (!storeMetadata) {
                     throw new IllegalStateException("storeMetadata option is disabled but metadata was provided");
                 }
-                metadataClause = metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(","));
+                metadataClause = String.format(", %s", metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
             } else if (storeMetadata) {
                 throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
             }
-            String query = String.format("CREATE TABLE IF NOT EXISTS %s (embedding_id UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL, %s)", tableName,
+            String query = String.format("CREATE TABLE IF NOT EXISTS %s (embedding_id UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", tableName,
                     contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataClause);
             statement.executeUpdate(query);
             if (vectorIndex == null) {
                 // default index
-                vectorIndex = new HNSWIndex(tableName, contentColumn, null, null, null, null, null);
+                vectorIndex = new HNSWIndex(tableName, embeddingColumn, null, null, null, null, null);
             }
             query = vectorIndex.generateCreateIndexQuery();
             statement.executeUpdate(query);
