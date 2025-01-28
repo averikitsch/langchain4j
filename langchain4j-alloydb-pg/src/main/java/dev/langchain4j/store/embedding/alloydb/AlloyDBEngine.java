@@ -87,7 +87,6 @@ public class AlloyDBEngine {
     ) {
         HikariConfig config = new HikariConfig();
         config.setUsername(ensureNotBlank(user, "user"));
-        System.out.println(user);
         if (enableIAMAuth) {
             config.addDataSourceProperty("alloydbEnableIAMAuth", "true");
         } else {
@@ -148,12 +147,12 @@ public class AlloyDBEngine {
      */
     public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, List<MetadataColumn> metadataColumns, VectorIndex vectorIndex, Boolean overwriteExisting, Boolean storeMetadata) {
         ensureNotBlank(tableName, "tableName");
-        try(Connection connection = getConnection();) {
+        try (Connection connection = getConnection();) {
 
             Statement statement = connection.createStatement();
             if (overwriteExisting == null || !overwriteExisting) {
                 ResultSet rs = connection.getMetaData().getTables(null, null, tableName.toLowerCase(), null);
-                if(rs.next()) {
+                if (rs.next()) {
                     throw new IllegalStateException(String.format("Overwrite option is false but table %s is present", tableName));
                 }
             } else {

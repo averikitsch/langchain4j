@@ -20,7 +20,7 @@ import dev.langchain4j.store.embedding.alloydb.AlloyDBEngine;
 import dev.langchain4j.store.embedding.alloydb.MetadataColumn;
 import dev.langchain4j.store.embedding.alloydb.index.IVFFlatIndex;
 
-public class AlloyDBEngineTest {
+public class AlloyDBEngineIT {
 
     private static final String TABLE_NAME = "JAVA_ENGINE_TEST_TABLE";
     private static final String CUSTOM_TABLE_NAME = "JAVA_ENGINE_TEST_CUSTOM_TABLE";
@@ -101,7 +101,7 @@ public class AlloyDBEngineTest {
 
         verifyColumns(TABLE_NAME, expectedNames);
 
-        verifyIndex(CUSTOM_TABLE_NAME, "hnsw", "USING hnsw (custom_embedding_column)");        
+        verifyIndex(CUSTOM_TABLE_NAME, "hnsw", "USING hnsw (custom_embedding_column)");
 
     }
 
@@ -111,7 +111,7 @@ public class AlloyDBEngineTest {
         engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, false);
         // custom
         engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, "overwritten", null, null, null, true, false);
-        
+
         Set<String> expectedColumns = new HashSet<>();
         expectedColumns.add("embedding_id");
         expectedColumns.add("overwritten");
@@ -137,7 +137,7 @@ public class AlloyDBEngineTest {
 
         verifyColumns(CUSTOM_TABLE_NAME, expectedColumns);
 
-        verifyIndex(CUSTOM_TABLE_NAME, "ivfflat", "USING ivfflat (custom_embedding_column)");        
+        verifyIndex(CUSTOM_TABLE_NAME, "ivfflat", "USING ivfflat (custom_embedding_column)");
 
     }
 
@@ -181,7 +181,9 @@ public class AlloyDBEngineTest {
     void create_engine_with_iam_auth() throws SQLException {
         AlloyDBEngine iam_engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).ipType("PUBLIC").iamAccountEmail(IAM_EMAIL).build();
         try (Connection connection = iam_engine.getConnection();) {
-            assertThat(connection.createStatement().executeQuery("SELECT 1").getInt(1)).isEqualTo(1);
+            ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
+            rs.next();
+            assertThat(rs.getInt(1)).isEqualTo(1);
         }
     }
 
@@ -189,7 +191,9 @@ public class AlloyDBEngineTest {
     void create_engine_with_get_iam_email() throws SQLException {
         AlloyDBEngine iam_engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).ipType("PUBLIC").build();
         try (Connection connection = iam_engine.getConnection();) {
-            assertThat(connection.createStatement().executeQuery("SELECT 1").getInt(1)).isEqualTo(1);
+            ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
+            rs.next();
+            assertThat(rs.getInt(1)).isEqualTo(1);
         }
     }
 
