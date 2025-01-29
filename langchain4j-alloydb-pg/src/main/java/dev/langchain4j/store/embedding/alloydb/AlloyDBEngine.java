@@ -134,6 +134,9 @@ public class AlloyDBEngine {
      * custom name
      * @param embeddingColumn (Default: "embedding") create the embedding column
      * with custom name
+     * @param embeddingIdColumn (Optional, Default: "langchain_id") Column to
+     * store ids.
+     *
      * @param metadataColumns (Default: "metadata") list of SQLAlchemy Columns
      * to create for custom metadata
      * @param indexType (Default: HNSWIndex) set the index type, supported
@@ -143,7 +146,7 @@ public class AlloyDBEngine {
      * @param storeMetadata (Default: True) boolean to store extra metadata in
      * metadata column if not described in “metadata” field list
      */
-    public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, List<MetadataColumn> metadataColumns, VectorIndex vectorIndex, Boolean overwriteExisting, Boolean storeMetadata) {
+    public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, String embeddingIdColumn, List<MetadataColumn> metadataColumns, VectorIndex vectorIndex, Boolean overwriteExisting, Boolean storeMetadata) {
         ensureNotBlank(tableName, "tableName");
         try (Connection connection = getConnection();) {
             Statement statement = connection.createStatement();
@@ -164,6 +167,9 @@ public class AlloyDBEngine {
             if (isNullOrBlank(embeddingColumn)) {
                 embeddingColumn = "embedding";
             }
+            if (isNullOrBlank(embeddingIdColumn)) {
+                embeddingIdColumn = "langchain_id";
+            }
             String metadataClause = "";
             if (metadataColumns != null && !metadataColumns.isEmpty()) {
                 if (!storeMetadata) {
@@ -173,7 +179,7 @@ public class AlloyDBEngine {
             } else if (storeMetadata) {
                 throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
             }
-            String query = String.format("CREATE TABLE IF NOT EXISTS %s (embedding_id UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", tableName,
+            String query = String.format("CREATE TABLE IF NOT EXISTS %s (%s UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", tableName, embeddingIdColumn,
                     contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataClause);
             statement.executeUpdate(query);
             if (vectorIndex == null) {
