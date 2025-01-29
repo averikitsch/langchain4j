@@ -126,6 +126,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private void addAllInternal(List<String> ids, List<Embedding> embeddings, List<TextSegment> textSegments) {
         // check all are the same size, max size????
+        if(ids.size() != embeddings.size() || embeddings.size() != textSegments.size()) {
+            throw new IllegalArgumentException("List parameters are different sizes!");
+        }
         try (Connection connection = engine.getConnection()) {
 
             // create query
@@ -223,7 +226,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         public AlloyDBEmbeddingStore build() {
-            return new AlloyDBEmbeddingStore(engine, tableName, schemaName, contentColumn, embeddingColumn, idColumn, metadataColumns, metadataJsonColumn, ignoreMetadataColumns, queryOptions);
+            return new AlloyDBEmbeddingStore(engine, tableName, schemaName, contentColumn, embeddingColumn, metadataColumns, metadataJsonColumn, ignoreMetadataColumns, queryOptions);
         }
     }
 

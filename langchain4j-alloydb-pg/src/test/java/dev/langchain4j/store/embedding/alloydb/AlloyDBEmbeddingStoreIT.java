@@ -1,11 +1,17 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import static dev.langchain4j.store.embedding.alloydb.utils.VerifyUtils.verifyColumns;
+import static dev.langchain4j.store.embedding.alloydb.utils.VerifyUtils.verifyIndex;
 
 public class AlloyDBEmbeddingStoreIT {
     private static final String TABLE_NAME = "JAVA_EMBEDDING_TEST_TABLE";
@@ -34,6 +40,7 @@ public class AlloyDBEmbeddingStoreIT {
         engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).user(user).password(password).ipType("PUBLIC").build();
         // available after merging engine stuff
         // engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, false);
+        engine.initVectorStoreTable();
         store = AlloyDBEmbeddingStore.builder().engine(engine).tableName(TABLE_NAME).build();
 
     }
@@ -49,8 +56,18 @@ public class AlloyDBEmbeddingStoreIT {
     }
 
     @Test
-    void initialize_default_embedding_store() {
+    void initialize_default_embedding_store() throws SQLException {
         // stuff is private, maybe query column names
+        Set<String> expectedNames = new HashSet<>();
+
+        expectedNames.add("embedding_id");
+        expectedNames.add("content");
+        expectedNames.add("embedding");
+
+        try(Connection connection = engine.getConnection()) {
+            verifyColumns(connection, TABLE_NAME, expectedNames);
+            verifyIndex(connection, TABLE_NAME, "hnsw", "USING hnsw (custom_embedding_column)");
+        }
     }
 
     @Test
