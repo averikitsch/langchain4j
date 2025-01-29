@@ -120,8 +120,6 @@ public class AlloyDBEngine {
 
     public Connection getConnection() throws SQLException {
         Connection connection = dataSource.getConnection();
-        Statement statement = connection.createStatement();
-        statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
         return connection;
     }
 
@@ -148,8 +146,9 @@ public class AlloyDBEngine {
     public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, List<MetadataColumn> metadataColumns, VectorIndex vectorIndex, Boolean overwriteExisting, Boolean storeMetadata) {
         ensureNotBlank(tableName, "tableName");
         try (Connection connection = getConnection();) {
-
             Statement statement = connection.createStatement();
+            statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
+
             if (overwriteExisting == null || !overwriteExisting) {
                 ResultSet rs = connection.getMetaData().getTables(null, null, tableName.toLowerCase(), null);
                 if (rs.next()) {
