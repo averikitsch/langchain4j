@@ -101,7 +101,7 @@ public class AlloyDBEngineIT {
 
         verifyColumns(TABLE_NAME, expectedNames);
 
-        verifyIndex(CUSTOM_TABLE_NAME, "hnsw", "USING hnsw (custom_embedding_column)");
+        verifyIndex(TABLE_NAME, "hnsw", "USING hnsw (embedding vector_l2_ops)");
 
     }
 
