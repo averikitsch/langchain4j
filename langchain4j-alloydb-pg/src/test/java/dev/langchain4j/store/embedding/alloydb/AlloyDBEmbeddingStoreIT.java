@@ -2,7 +2,9 @@ package dev.langchain4j.store.embedding.alloydb;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterAll;
@@ -39,7 +41,7 @@ public class AlloyDBEmbeddingStoreIT {
 
         engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).user(user).password(password).ipType("PUBLIC").build();
         // available after merging engine stuff
-        // engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, false);
+        // engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, null, false);
         engine.initVectorStoreTable();
         store = AlloyDBEmbeddingStore.builder().engine(engine).tableName(TABLE_NAME).build();
 
@@ -60,7 +62,7 @@ public class AlloyDBEmbeddingStoreIT {
         // stuff is private, maybe query column names
         Set<String> expectedNames = new HashSet<>();
 
-        expectedNames.add("embedding_id");
+        expectedNames.add("langchain_id");
         expectedNames.add("content");
         expectedNames.add("embedding");
 
@@ -71,8 +73,23 @@ public class AlloyDBEmbeddingStoreIT {
     }
 
     @Test
-    void initialize_custom_embedding_store() {
-        // same as above
+    void initialize_custom_embedding_store() throws SQLException {
+        List<MetadataColumn> metadataColumns = new ArrayList<>();
+        metadataColumns.add(new MetadataColumn("page", "TEXT", true));
+        metadataColumns.add(new MetadataColumn("source", "TEXT", false));
+        AlloyDBEmbeddingStore.builder().engine(engine).tableName(TABLE_NAME).contentColumn("custom_content_column").embeddingColumn("custom_embedding_column").embeddingIdColumn("custom_embedding_id_column").metadataColumns(metadataColumns).build();
+
+        Set<String> expectedColumns = new HashSet<>();
+        expectedColumns.add("embedding_id");
+        expectedColumns.add("custom_embedding_id_column");
+        expectedColumns.add("custom_content_column");
+        expectedColumns.add("custom_embedding_column");
+        expectedColumns.add("page");
+        expectedColumns.add("source");
+        try(Connection connection = engine.getConnection()) {
+            verifyColumns(connection, TABLE_NAME, expectedColumns);
+            verifyIndex(connection, TABLE_NAME, "ivfflat", "USING ivfflat (custom_embedding_column)");    
+        }
     }
 
     @Test
@@ -82,6 +99,21 @@ public class AlloyDBEmbeddingStoreIT {
 
     @Test
     void add_embeddings_list_to_store() {
+        // TODO
+    }
+
+    @Test
+    void add_single_embedding_with_id_to_store() {
+        // TODO 
+    }
+
+    @Test
+    void add_single_embedding_with_content_to_store() {
+        // TODO 
+    }
+
+    @Test
+    void add_embeddings_list_and_content_list_to_store() {
         // TODO
     }
 }
