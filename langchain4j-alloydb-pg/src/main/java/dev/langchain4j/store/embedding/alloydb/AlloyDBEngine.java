@@ -2,7 +2,6 @@ package dev.langchain4j.store.embedding.alloydb;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
@@ -24,8 +23,6 @@ import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import dev.langchain4j.store.embedding.alloydb.index.HNSWIndex;
-import dev.langchain4j.store.embedding.alloydb.index.VectorIndex;
 
 public class AlloyDBEngine {
 
@@ -130,36 +127,35 @@ public class AlloyDBEngine {
      * suffix or prefix!
      * @param vectorSize (Required) create a vector column with custom vector
      * size
+     * @param schemaName (Default: "public") The schema name
      * @param contentColumn (Default: "content") create the content column with
      * custom name
      * @param embeddingColumn (Default: "embedding") create the embedding column
      * with custom name
      * @param embeddingIdColumn (Optional, Default: "langchain_id") Column to
      * store ids.
-     *
      * @param metadataColumns (Default: "metadata") list of SQLAlchemy Columns
      * to create for custom metadata
-     * @param indexType (Default: HNSWIndex) set the index type, supported
-     * types: HNSWIndex, IVFFLATIndex, KNNIndex
-     * @param overwriteExisting (Default: False) boolean for dropping table
-     * before insertion
+     * @param metadataJsonColumn (Default: "langchain_metadata") the column to
+     * store extra metadata in     * @paraverwriteExisting (Default: False) bo
+     * lean for dropping table before insertion
      * @param storeMetadata (Default: True) boolean to store extra metadata in
      * metadata column if not described in “metadata” field list
      */
-    public void initVectorStoreTable(String tableName, Integer vectoreSize, String contentColumn, String embeddingColumn, String embeddingIdColumn, List<MetadataColumn> metadataColumns, VectorIndex vectorIndex, Boolean overwriteExisting, Boolean storeMetadata) {
+    public void initVectorStoreTable(String tableName, Integer vectoreSize, String schemaName, String contentColumn, String embeddingColumn, String embeddingIdColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, Boolean overwriteExisting, Boolean storeMetadata) {
         ensureNotBlank(tableName, "tableName");
         try (Connection connection = getConnection();) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
 
-            if (overwriteExisting == null || !overwriteExisting) {
-                ResultSet rs = connection.getMetaData().getTables(null, null, tableName.toLowerCase(), null);
-                if (rs.next()) {
-                    throw new IllegalStateException(String.format("Overwrite option is false but table %s is present", tableName));
-                }
+            if (isNullOrBlank(schemaName)) {
+                schemaName = "public";
+                // no need to create the deafault schema
             } else {
-                log.debug(String.format("overwritting table %s", tableName));
-                statement.executeUpdate(String.format("DROP TABLE %s", tableName));
+                statement.executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS %s", schemaName));
+            }
+            if (overwriteExisting != null && overwriteExisting) {
+                statement.executeUpdate(String.format("DROP TABLE %s.%s", schemaName, tableName));
             }
             if (isNullOrBlank(contentColumn)) {
                 contentColumn = "content";
@@ -170,26 +166,24 @@ public class AlloyDBEngine {
             if (isNullOrBlank(embeddingIdColumn)) {
                 embeddingIdColumn = "langchain_id";
             }
+            if (isNullOrBlank(metadataJsonColumn)) {
+                metadataJsonColumn = "langchain_metadata";
+            }
             String metadataClause = "";
             if (metadataColumns != null && !metadataColumns.isEmpty()) {
                 if (!storeMetadata) {
                     throw new IllegalStateException("storeMetadata option is disabled but metadata was provided");
                 }
+                metadataColumns.add(new MetadataColumn(metadataJsonColumn, "JSON", true));
                 metadataClause = String.format(", %s", metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
             } else if (storeMetadata) {
                 throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
             }
-            String query = String.format("CREATE TABLE IF NOT EXISTS %s (%s UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", tableName, embeddingIdColumn,
+            String query = String.format("CREATE TABLE %s.%s (%s UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", schemaName, tableName, embeddingIdColumn,
                     contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataClause);
             statement.executeUpdate(query);
-            if (vectorIndex == null) {
-                // default index
-                vectorIndex = new HNSWIndex(tableName, embeddingColumn, null, null, null, null, null);
-            }
-            query = vectorIndex.generateCreateIndexQuery();
-            statement.executeUpdate(query);
         } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Failed to initialize vector store table: %s", tableName), ex);
+            throw new RuntimeException(String.format("Failed to initialize vector store table: %s.%s", schemaName, tableName), ex);
         }
     }
 
