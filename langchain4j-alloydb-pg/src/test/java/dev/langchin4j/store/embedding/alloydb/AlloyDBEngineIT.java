@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import dev.langchain4j.store.TableInitParameters;
 import dev.langchain4j.store.embedding.alloydb.AlloyDBEngine;
 import dev.langchain4j.store.embedding.alloydb.MetadataColumn;
 
@@ -25,6 +26,7 @@ public class AlloyDBEngineIT {
     private static final String CUSTOM_TABLE_NAME = "java_engine_test_custom_table";
     private static final String CUSTOM_SCHEMA = "custom_schema";
     private static final Integer VECTOR_SIZE = 768;
+    private static TableInitParameters defaultParameters;
     private static String IAM_EMAIL;
     private static String projectId;
     private static String region;
@@ -51,6 +53,8 @@ public class AlloyDBEngineIT {
         engine = AlloyDBEngine.builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).user(user).password(password).ipType("PUBLIC").build();
 
         defaultConnection = engine.getConnection();
+
+        defaultParameters = TableInitParameters.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).build();
 
     }
 
@@ -83,7 +87,7 @@ public class AlloyDBEngineIT {
     @Test
     void initialize_vector_table_with_default_schema() throws SQLException {
         // default options
-        engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, null, null, false);
+        engine.initVectorStoreTable(defaultParameters);
 
         Set<String> expectedNames = new HashSet<>();
 
@@ -91,16 +95,17 @@ public class AlloyDBEngineIT {
         expectedNames.add("content");
         expectedNames.add("embedding");
 
-        verifyColumns("public."+TABLE_NAME, expectedNames);
+        verifyColumns("public." + TABLE_NAME, expectedNames);
 
     }
 
     @Test
     void initialize_vector_table_overwrite_true() throws SQLException {
         // default options
-        engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, null, null, false);
+        engine.initVectorStoreTable(defaultParameters);
         // custom
-        engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, "overwritten", null, null, null, null, true, false);
+        TableInitParameters overwritten = TableInitParameters.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).contentColumn("overwritten").overwriteExisting(true).build();
+        engine.initVectorStoreTable(overwritten);
 
         Set<String> expectedColumns = new HashSet<>();
         expectedColumns.add("langchain_id");
@@ -116,8 +121,10 @@ public class AlloyDBEngineIT {
         List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
         metadataColumns.add(new MetadataColumn("source", "TEXT", false));
-        engine.initVectorStoreTable(CUSTOM_TABLE_NAME, 1000, "custom_schema", "custom_content_column", "custom_embedding_column", "custom_embedding_id_column", metadataColumns, "custom_metadata_json_column", false, true);
 
+        TableInitParameters customParams = TableInitParameters.builder().tableName(CUSTOM_TABLE_NAME).vectorSize(1000).schemaName(CUSTOM_SCHEMA).contentColumn("custom_content_column")
+                .embeddingColumn("custom_embedding_column").embeddingIdColumn("custom_embedding_id_column").metadataColumns(metadataColumns).metadataJsonColumn("custom_metadata_json_column").overwriteExisting(false).storeMetadata(true).build();
+        engine.initVectorStoreTable(customParams);
         Set<String> expectedColumns = new HashSet<>();
         expectedColumns.add("custom_embedding_id_column");
         expectedColumns.add("custom_content_column");
@@ -132,9 +139,10 @@ public class AlloyDBEngineIT {
 
     @Test
     void create_from_existing_fails_if_table_not_present() {
+        TableInitParameters initParameters = TableInitParameters.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).overwriteExisting(true).storeMetadata(false).build();
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, null, true, false);
+            engine.initVectorStoreTable(initParameters);
         });
 
         assertThat(exception.getMessage()).contains("Failed to initialize vector store table: public." + TABLE_NAME);
@@ -143,10 +151,12 @@ public class AlloyDBEngineIT {
 
     @Test
     void create_fails_when_table_present_and_overwrite_false() {
-        engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, null, false, false);
+        TableInitParameters initParameters = TableInitParameters.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).storeMetadata(false).build();
+
+        engine.initVectorStoreTable(initParameters);
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, null, null, null, null, null, null, false, false);
+            engine.initVectorStoreTable(initParameters);
         });
 
         assertThat(exception.getMessage()).contains(String.format("Failed to initialize vector store table: public.%s", TABLE_NAME));
@@ -154,13 +164,16 @@ public class AlloyDBEngineIT {
     }
 
     @Test
-    void table_create_fails_when_metadata_present_and_ignore_metadata_true() {
+    void table_create_fails_when_metadata_present_and_store_metadata_false() {
         List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
         metadataColumns.add(new MetadataColumn("source", "TEXT", true));
 
+        TableInitParameters customParams = TableInitParameters.builder().tableName(CUSTOM_TABLE_NAME).vectorSize(1000).schemaName(CUSTOM_SCHEMA).contentColumn("custom_content_column")
+                .embeddingColumn("custom_embedding_column").metadataColumns(metadataColumns).metadataJsonColumn("custom_metadata_json_column").storeMetadata(false).build();
+
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            engine.initVectorStoreTable(TABLE_NAME, VECTOR_SIZE, CUSTOM_SCHEMA, "custom_content_column", "custom_embedding_column", "custom_embedding_id_column", metadataColumns, "custom_metadata_json_column", false, false);
+            engine.initVectorStoreTable(customParams);
         });
 
         assertThat(exception.getMessage()).contains("storeMetadata option is disabled but metadata was provided");

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -21,8 +20,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.readBytes;
-import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import dev.langchain4j.store.TableInitParameters;
 
 public class AlloyDBEngine {
 
@@ -120,70 +119,33 @@ public class AlloyDBEngine {
         return connection;
     }
 
+
     /**
-     * create a non-default VectorStore table
-     *
-     * @param tableName (Required) the table name to create - does not append a
-     * suffix or prefix!
-     * @param vectorSize (Required) create a vector column with custom vector
-     * size
-     * @param schemaName (Default: "public") The schema name
-     * @param contentColumn (Default: "content") create the content column with
-     * custom name
-     * @param embeddingColumn (Default: "embedding") create the embedding column
-     * with custom name
-     * @param embeddingIdColumn (Optional, Default: "langchain_id") Column to
-     * store ids.
-     * @param metadataColumns (Default: "metadata") list of SQLAlchemy Columns
-     * to create for custom metadata
-     * @param metadataJsonColumn (Default: "langchain_metadata") the column to
-     * store extra metadata in     * @paraverwriteExisting (Default: False) bo
-     * lean for dropping table before insertion
-     * @param storeMetadata (Default: True) boolean to store extra metadata in
-     * metadata column if not described in “metadata” field list
+     * @param tableInitParameters contains the parameters necesary to intialize the Vector table 
      */
-    public void initVectorStoreTable(String tableName, Integer vectoreSize, String schemaName, String contentColumn, String embeddingColumn, String embeddingIdColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, Boolean overwriteExisting, Boolean storeMetadata) {
-        ensureNotBlank(tableName, "tableName");
+    public void initVectorStoreTable(TableInitParameters tableInitParameters) {
         try (Connection connection = getConnection();) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
+            statement.executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS %s", tableInitParameters.getSchemaName()));
 
-            if (isNullOrBlank(schemaName)) {
-                schemaName = "public";
-                // no need to create the deafault schema
-            } else {
-                statement.executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS %s", schemaName));
-            }
-            if (overwriteExisting != null && overwriteExisting) {
-                statement.executeUpdate(String.format("DROP TABLE %s.%s", schemaName, tableName));
-            }
-            if (isNullOrBlank(contentColumn)) {
-                contentColumn = "content";
-            }
-            if (isNullOrBlank(embeddingColumn)) {
-                embeddingColumn = "embedding";
-            }
-            if (isNullOrBlank(embeddingIdColumn)) {
-                embeddingIdColumn = "langchain_id";
-            }
-            if (isNullOrBlank(metadataJsonColumn)) {
-                metadataJsonColumn = "langchain_metadata";
+            if (tableInitParameters.getOverwriteExisting()) {
+                statement.executeUpdate(String.format("DROP TABLE %s.%s", tableInitParameters.getSchemaName(), tableInitParameters.getTableName()));
             }
             String metadataClause = "";
-            if (metadataColumns != null && !metadataColumns.isEmpty()) {
-                if (!storeMetadata) {
+            if (tableInitParameters.getMetadataColumns() != null && !tableInitParameters.getMetadataColumns().isEmpty()) {
+                if (!tableInitParameters.getStoreMetadata()) {
                     throw new IllegalStateException("storeMetadata option is disabled but metadata was provided");
                 }
-                metadataColumns.add(new MetadataColumn(metadataJsonColumn, "JSON", true));
-                metadataClause = String.format(", %s", metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
-            } else if (storeMetadata) {
+                metadataClause += String.format(", %s, %s", new MetadataColumn(tableInitParameters.getMetadataJsonColumn(), "JSON", true).generateColumnString(), tableInitParameters.getMetadataColumns().stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
+            } else if (tableInitParameters.getStoreMetadata()) {
                 throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
             }
-            String query = String.format("CREATE TABLE %s.%s (%s UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", schemaName, tableName, embeddingIdColumn,
-                    contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataClause);
+            String query = String.format("CREATE TABLE %s.%s (%s UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", tableInitParameters.getSchemaName(), tableInitParameters.getTableName(), tableInitParameters.getEmbeddingIdColumn(),
+            tableInitParameters.getContentColumn(), tableInitParameters.getEmbeddingColumn(), tableInitParameters.getVectorSize(), metadataClause);
             statement.executeUpdate(query);
         } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Failed to initialize vector store table: %s.%s", schemaName, tableName), ex);
+            throw new RuntimeException(String.format("Failed to initialize vector store table: %s.%s", tableInitParameters.getSchemaName(), tableInitParameters.getTableName(), ex));
         }
     }
 

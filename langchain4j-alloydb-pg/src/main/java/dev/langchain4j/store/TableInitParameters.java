@@ -1,0 +1,181 @@
+package dev.langchain4j.store;
+
+import java.util.List;
+
+import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import dev.langchain4j.store.embedding.alloydb.MetadataColumn;
+
+public class TableInitParameters {
+
+    private final String tableName;
+    private final Integer vectorSize;
+    private final String schemaName;
+    private final String contentColumn;
+    private final String embeddingColumn;
+    private final String embeddingIdColumn;
+    private final List<MetadataColumn> metadataColumns;
+    private final String metadataJsonColumn;
+    private final Boolean overwriteExisting;
+    private final Boolean storeMetadata;
+
+    /**
+     * create a non-default VectorStore table
+     *
+     * @param tableName (Required) the table name to create - does not append a
+     * suffix or prefix!
+     * @param vectorSize (Required) create a vector column with custom vector
+     * size
+     * @param schemaName (Default: "public") The schema name
+     * @param contentColumn (Default: "content") create the content column with
+     * custom name
+     * @param embeddingColumn (Default: "embedding") create the embedding column
+     * with custom name
+     * @param embeddingIdColumn (Optional, Default: "langchain_id") Column to
+     * store ids.
+     * @param metadataColumns list of SQLAlchemy Columns
+     * to create for custom metadata
+     * @param metadataJsonColumn (Default: "langchain_metadata") the column to
+     * store extra metadata in 
+     * @param overwriteExisting (Default: False) boolean
+     * for dropping table before insertion
+     * @param storeMetadata (Default: False) boolean to store extra metadata in
+     * metadata column if not described in “metadata” field list
+     */
+    private TableInitParameters(String tableName, Integer vectorSize, String schemaName, String contentColumn, String embeddingColumn, String embeddingIdColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, Boolean overwriteExisting, Boolean storeMetadata) {
+        ensureNotBlank(tableName, "tableName");
+        ensureGreaterThanZero(vectorSize, "vectoreSize");
+        this.contentColumn = contentColumn;
+        this.embeddingColumn = embeddingColumn;
+        this.embeddingIdColumn = embeddingIdColumn;
+        this.metadataColumns = metadataColumns;
+        this.metadataJsonColumn = metadataJsonColumn;
+        this.overwriteExisting = overwriteExisting;
+        this.schemaName = schemaName;
+        this.storeMetadata = storeMetadata;
+        this.tableName = tableName;
+        this.vectorSize = vectorSize;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public Integer getVectorSize() {
+        return vectorSize;
+    }
+
+    public String getSchemaName() {
+        return schemaName;
+    }
+
+    public String getContentColumn() {
+        return contentColumn;
+    }
+
+    public String getEmbeddingColumn() {
+        return embeddingColumn;
+    }
+
+    public String getEmbeddingIdColumn() {
+        return embeddingIdColumn;
+    }
+
+    public List<MetadataColumn> getMetadataColumns() {
+        return metadataColumns;
+    }
+
+    public String getMetadataJsonColumn() {
+        return metadataJsonColumn;
+    }
+
+    public Boolean getOverwriteExisting() {
+        return overwriteExisting;
+    }
+
+    public Boolean getStoreMetadata() {
+        return storeMetadata;
+    }
+
+    public static class Builder {
+
+        private String tableName;
+        private Integer vectorSize;
+        private String schemaName;
+        private String contentColumn;
+        private String embeddingColumn;
+        private String embeddingIdColumn;
+        private List<MetadataColumn> metadataColumns;
+        private String metadataJsonColumn;
+        private Boolean overwriteExisting;
+        private Boolean storeMetadata;
+
+        public Builder() {
+            this.schemaName = "public";
+            this.contentColumn = "content";
+            this.embeddingColumn = "embedding";
+            this.embeddingIdColumn = "langchain_id";
+            this.metadataJsonColumn = "langchain_metadata";
+            this.overwriteExisting = false;
+            this.storeMetadata = false;
+        }
+
+        public Builder tableName(String tableName) {
+            this.tableName = tableName;
+            return this;
+        }
+
+        public Builder vectorSize(Integer vectorSize) {
+            this.vectorSize = vectorSize;
+            return this;
+        }
+
+        public Builder schemaName(String schemaName) {
+            this.schemaName = schemaName;
+            return this;
+        }
+
+        public Builder contentColumn(String contentColumn) {
+            this.contentColumn = contentColumn;
+            return this;
+        }
+
+        public Builder embeddingColumn(String embeddingColumn) {
+            this.embeddingColumn = embeddingColumn;
+            return this;
+        }
+
+        public Builder embeddingIdColumn(String embeddingIdColumn) {
+            this.embeddingIdColumn = embeddingIdColumn;
+            return this;
+        }
+
+        public Builder metadataColumns(List<MetadataColumn> metadataColumns) {
+            this.metadataColumns = metadataColumns;
+            return this;
+        }
+
+        public Builder metadataJsonColumn(String metadataJsonColumn) {
+            this.metadataJsonColumn = metadataJsonColumn;
+            return this;
+        }
+
+        public Builder overwriteExisting(Boolean overwriteExisting) {
+            this.overwriteExisting = overwriteExisting;
+            return this;
+        }
+
+        public Builder storeMetadata(Boolean storeMetadata) {
+            this.storeMetadata = storeMetadata;
+            return this;
+        }
+
+        public TableInitParameters build() {
+            return new TableInitParameters(tableName, vectorSize, schemaName, contentColumn, embeddingColumn, embeddingIdColumn, metadataColumns, metadataJsonColumn, overwriteExisting, storeMetadata);
+        }
+    }
+}
