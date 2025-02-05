@@ -1,20 +1,33 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.logging.Logger;
+import java.sql.Statement;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.readBytes;
+import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 public class AlloyDBEngine {
 
-    private static final Logger log = Logger.getLogger(AlloyDBEngine.class.getName());
-    private DataSource dataSource;
+    private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
+    private final DataSource dataSource;
 
     /**
      * Constructor for AlloyDBEngine
@@ -40,17 +53,21 @@ public class AlloyDBEngine {
             String ipType,
             String iamAccountEmail
     ) {
-        Boolean enableIAMAuth = false;
-        if (user != null && !user.isBlank() && password != null && !password.isBlank()) {
-            enableIAMAuth = false;
-        } else {
+        Boolean enableIAMAuth;
+        if (isNullOrBlank(user) && isNullOrBlank(password)) {
             enableIAMAuth = true;
-            if (iamAccountEmail != null && !iamAccountEmail.isBlank()) {
+            if (isNotNullOrBlank(iamAccountEmail)) {
+                log.debug("Found iamAccountEmail");
                 user = iamAccountEmail;
             } else {
-                // to be implemented
-                user = getIAMPrincipalEmail();
+                log.debug("Retrieving IAM principal email");
+                user = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
             }
+        } else if (isNotNullOrBlank(user) && isNotNullOrBlank(password)) {
+            enableIAMAuth = false;
+            log.debug("Found user and password, IAM Auth disabled");
+        } else {
+            throw new IllegalStateException("Either one of user or password is blank, expected both user and password to be valid credentials or empty");
         }
         String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId, "projectId")).append("/locations/")
                 .append(ensureNotBlank(region, "region")).append("/clusters/").append(ensureNotBlank(cluster, "cluster")).append("/instances/").append(ensureNotBlank(instance, "instance")).toString();
@@ -66,11 +83,11 @@ public class AlloyDBEngine {
             Boolean enableIAMAuth
     ) {
         HikariConfig config = new HikariConfig();
-        config.setUsername(ensureNotBlank(user, "user")); // e.g., "postgres"
+        config.setUsername(ensureNotBlank(user, "user"));
         if (enableIAMAuth) {
             config.addDataSourceProperty("alloydbEnableIAMAuth", "true");
         } else {
-            config.setPassword(ensureNotBlank(password, "password")); // e.g., "secret-password"
+            config.setPassword(ensureNotBlank(password, "password"));
         }
         config.setJdbcUrl(String.format("jdbc:postgresql:///%s", ensureNotBlank(database, "database")));
         config.addDataSourceProperty("socketFactory", "com.google.cloud.alloydb.SocketFactory");
@@ -81,16 +98,93 @@ public class AlloyDBEngine {
     }
 
     private String getIAMPrincipalEmail() {
-        //to be implemented
-        return "";
+        try {
+            GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
+            String accessToken = credentials.refreshAccessToken().getTokenValue();
+
+            String oauth2APIURL = "https://oauth2.googleapis.com/tokeninfo?access_token=" + accessToken;
+            byte[] responseBytes = readBytes(oauth2APIURL);
+            JsonObject responseJson = JsonParser.parseString(new String(responseBytes)).getAsJsonObject();
+            if (responseJson.has("email")) {
+                return responseJson.get("email").getAsString();
+            } else {
+                throw new RuntimeException("unable to load IAM principal email");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("unable to load IAM principal email", e);
+        }
     }
 
     public Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
+        Connection connection = dataSource.getConnection();
+        return connection;
     }
 
-    public void initVectorStoreTable() {
-        //to be implemented
+    /**
+     * create a non-default VectorStore table
+     *
+     * @param tableName (Required) the table name to create - does not append a
+     * suffix or prefix!
+     * @param vectorSize (Required) create a vector column with custom vector
+     * size
+     * @param schemaName (Default: "public") The schema name
+     * @param contentColumn (Default: "content") create the content column with
+     * custom name
+     * @param embeddingColumn (Default: "embedding") create the embedding column
+     * with custom name
+     * @param embeddingIdColumn (Optional, Default: "langchain_id") Column to
+     * store ids.
+     * @param metadataColumns (Default: "metadata") list of SQLAlchemy Columns
+     * to create for custom metadata
+     * @param metadataJsonColumn (Default: "langchain_metadata") the column to
+     * store extra metadata in     * @paraverwriteExisting (Default: False) bo
+     * lean for dropping table before insertion
+     * @param storeMetadata (Default: True) boolean to store extra metadata in
+     * metadata column if not described in “metadata” field list
+     */
+    public void initVectorStoreTable(String tableName, Integer vectoreSize, String schemaName, String contentColumn, String embeddingColumn, String embeddingIdColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, Boolean overwriteExisting, Boolean storeMetadata) {
+        ensureNotBlank(tableName, "tableName");
+        try (Connection connection = getConnection();) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
+
+            if (isNullOrBlank(schemaName)) {
+                schemaName = "public";
+                // no need to create the deafault schema
+            } else {
+                statement.executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS %s", schemaName));
+            }
+            if (overwriteExisting != null && overwriteExisting) {
+                statement.executeUpdate(String.format("DROP TABLE %s.%s", schemaName, tableName));
+            }
+            if (isNullOrBlank(contentColumn)) {
+                contentColumn = "content";
+            }
+            if (isNullOrBlank(embeddingColumn)) {
+                embeddingColumn = "embedding";
+            }
+            if (isNullOrBlank(embeddingIdColumn)) {
+                embeddingIdColumn = "langchain_id";
+            }
+            if (isNullOrBlank(metadataJsonColumn)) {
+                metadataJsonColumn = "langchain_metadata";
+            }
+            String metadataClause = "";
+            if (metadataColumns != null && !metadataColumns.isEmpty()) {
+                if (!storeMetadata) {
+                    throw new IllegalStateException("storeMetadata option is disabled but metadata was provided");
+                }
+                metadataColumns.add(new MetadataColumn(metadataJsonColumn, "JSON", true));
+                metadataClause = String.format(", %s", metadataColumns.stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
+            } else if (storeMetadata) {
+                throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
+            }
+            String query = String.format("CREATE TABLE %s.%s (%s UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", schemaName, tableName, embeddingIdColumn,
+                    contentColumn, embeddingColumn, ensureGreaterThanZero(vectoreSize, "vectoreSize"), metadataClause);
+            statement.executeUpdate(query);
+        } catch (SQLException ex) {
+            throw new RuntimeException(String.format("Failed to initialize vector store table: %s.%s", schemaName, tableName), ex);
+        }
     }
 
     public void initChatHistoryTable() {
@@ -116,46 +210,73 @@ public class AlloyDBEngine {
         public Builder() {
         }
 
+        /**
+         * @param projectId (Required) AlloyDB project id
+         */
         public Builder projectId(String projectId) {
             this.projectId = projectId;
             return this;
         }
 
+        /**
+         * @param region (Required) AlloyDB cluster region
+         */
         public Builder region(String region) {
             this.region = region;
             return this;
         }
 
+        /**
+         * @param cluster (Required) AlloyDB cluster
+         */
         public Builder cluster(String cluster) {
             this.cluster = cluster;
             return this;
         }
 
+        /**
+         * @param instance (Required) AlloyDB instance
+         */
         public Builder instance(String instance) {
             this.instance = instance;
             return this;
         }
 
+        /**
+         * @param database (Required) AlloyDB database
+         */
         public Builder database(String database) {
             this.database = database;
             return this;
         }
 
+        /**
+         * @param user (Optional) AlloyDB database user
+         */
         public Builder user(String user) {
             this.user = user;
             return this;
         }
 
+        /**
+         * @param password (Optional) AlloyDB database password
+         */
         public Builder password(String password) {
             this.password = password;
             return this;
         }
 
+        /**
+         * @param ipType (Required) type of IP to be used (PUBLIC, PSC)
+         */
         public Builder ipType(String ipType) {
             this.ipType = ipType;
             return this;
         }
 
+        /**
+         * @param iamAccountEmail (Optional) IAM account email
+         */
         public Builder iamAccountEmail(String iamAccountEmail) {
             this.iamAccountEmail = iamAccountEmail;
             return this;
