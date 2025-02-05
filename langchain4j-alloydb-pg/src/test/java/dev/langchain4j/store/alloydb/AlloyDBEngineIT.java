@@ -1,4 +1,4 @@
-package dev.langchin4j.store.embedding.alloydb;
+package dev.langchin4j.store.alloydb.engine;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -17,8 +17,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import dev.langchain4j.store.TableInitParameters;
-import dev.langchain4j.store.embedding.alloydb.AlloyDBEngine;
-import dev.langchain4j.store.embedding.alloydb.MetadataColumn;
+import dev.langchain4j.store.alloydb.engine.AlloyDBEngine;
+import dev.langchain4j.store.alloydb.engine.MetadataColumn;
 
 public class AlloyDBEngineIT {
 

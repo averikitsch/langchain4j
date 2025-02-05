@@ -1,4 +1,4 @@
-package dev.langchain4j.store;
+package dev.langchain4j.store.alloydb.engine;
 
 import java.util.List;
 
