@@ -1,4 +1,7 @@
-package dev.langchain4j.store.embedding.alloydb.index;
+package dev.langchain4j.store.alloydb.index;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class IVFFlatIndex implements VectorIndex {
 
@@ -14,12 +17,14 @@ public class IVFFlatIndex implements VectorIndex {
 
     @Override
     public String getIndexOptions() {
-        return String.format("lists = %s)", listCount);
+        return String.format("(lists = %s)", listCount);
     }
 
     @Override
-    public String getParameterSettings() {
-        return String.format("SET ivfflat.probes = %d", probes);
+    public List<String> getParameterSettings() {
+        List<String> parameters = new ArrayList();
+        parameters.add(String.format("ivfflat.probes = %d", probes));
+        return parameters;
     }
 
     public DistanceStrategy getDistanceStrategy() {

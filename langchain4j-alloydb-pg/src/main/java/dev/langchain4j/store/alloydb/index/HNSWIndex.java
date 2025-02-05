@@ -1,4 +1,7 @@
-package dev.langchain4j.store.embedding.alloydb.index;
+package dev.langchain4j.store.alloydb.index;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class HNSWIndex implements VectorIndex {
 
@@ -16,12 +19,14 @@ public class HNSWIndex implements VectorIndex {
 
     @Override
     public String getIndexOptions() {
-        return String.format("m = %s, ef_construction = %s", m, efConstruction);
+        return String.format("(m = %s, ef_construction = %s)", m, efConstruction);
     }
 
     @Override
-    public String getParameterSettings() {
-        return String.format("hnsw.efS_search = %d", efSearch);
+    public List<String> getParameterSettings() {
+        List<String> parameters = new ArrayList();
+        parameters.add(String.format("hnsw.efS_search = %d", efSearch));
+        return parameters;
     }
 
     public DistanceStrategy getDistanceStrategy() {
