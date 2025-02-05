@@ -11,9 +11,9 @@ public class HNSWIndex implements VectorIndex {
     private final DistanceStrategy distanceStrategy;
 
     public HNSWIndex(Integer m, Integer efConstruction, Integer efSearch, DistanceStrategy distanceStrategy) {
-        this.m = (m != null)?m:16;
-        this.efConstruction = (efConstruction != null)?efConstruction:64;
-        this.distanceStrategy = distanceStrategy != null ? distanceStrategy : DistanceStrategy.DistanceStrategyFactory.getCosineDistanceStrategy() ;
+        this.m = (m != null) ? m : 16;
+        this.efConstruction = (efConstruction != null) ? efConstruction : 64;
+        this.distanceStrategy = distanceStrategy != null ? distanceStrategy : DistanceStrategy.DistanceStrategyFactory.getCosineDistanceStrategy();
         this.efSearch = efSearch;
     }
 
