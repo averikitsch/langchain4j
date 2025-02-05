@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +33,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private String contentColumn;
     private String embeddingColumn;
     private String embeddingIdColumn;
+    private String metadataJsonColumn;
     private List<MetadataColumn> metadataColumns;
     // should ignoreMetadata be boolean?
     private List<String> ignoreMetadataColumns;
@@ -50,6 +52,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      * embedding vectors. The embedding is generated from the document value
      * @param embeddingIdColumn (Optional, Default: "langchain_id") Column to
      * store ids.
+     * @param metadataJsonColumn (Default: "langchain_metadata") the column to
+     * store extra metadata in 
      * @param metadataColumns (Optional) Column(s) that represent a document’s
      * metadata
      * @param ignoreMetadataColumns (Optional) Column(s) to ignore in
@@ -57,13 +61,14 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param queryOptions (Optional) QueryOptions class with vector search
      * parameters
      */
-    public AlloyDBEmbeddingStore(AlloyDBEngine engine, String tableName, String schemaName, String contentColumn, String embeddingColumn, String embeddingIdColumn, List<MetadataColumn> metadataColumns, List<String> ignoreMetadataColumns, List<String> queryOptions) {
+    public AlloyDBEmbeddingStore(AlloyDBEngine engine, String tableName, String schemaName, String contentColumn, String embeddingColumn, String embeddingIdColumn, String metadataJsonColumn, List<MetadataColumn> metadataColumns, List<String> ignoreMetadataColumns, List<String> queryOptions) {
         this.engine = engine;
         this.tableName = tableName;
         this.schemaName = schemaName;
         this.contentColumn = contentColumn;
         this.embeddingColumn = embeddingColumn;
         this.embeddingIdColumn = embeddingIdColumn;
+        this.metadataJsonColumn = metadataJsonColumn;
         this.metadataColumns = metadataColumns;
         this.ignoreMetadataColumns = ignoreMetadataColumns;
         this.queryOptions = queryOptions;
@@ -125,9 +130,11 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 metadataColumnNames = ", " + metadataColumnNames;
             }
             // column names separated by comma
-            String columnNames = String.format("%s, %s, %s%s", embeddingIdColumn, embeddingColumn, contentColumn, metadataColumnNames);
+            String columnNames = String.format("%s, %s, %s, %s%s", embeddingIdColumn, embeddingColumn, contentColumn, metadataJsonColumn, metadataColumnNames);
 
-            String placeholders = QueryUtils.getPreparedStatementParameterPlaceholders(columnNames.length()-1);
+            // 4 default columns + metaNames.size() -1 
+            int totalColumns = metaNames.size() + 3;
+            String placeholders = QueryUtils.getPreparedStatementParameterPlaceholders(totalColumns);
 
             // create query
             String query = String.format("INSERT INTO %s (%s) VALUES (%s) ON CONFLICT (%s) %s", tableName, columnNames, placeholders, embeddingIdColumn, QueryUtils.getColumnExclusionClause(columnNames));
@@ -136,9 +143,10 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 preparedStatement.setString(1, id);
                 preparedStatement.setObject(2, embedding);
                 preparedStatement.setString(3, embeddedText);
-                for(int i = 3; i <= columnNames.length()-1; i++) {
-                    embeddedMetadata.metadata.get(metadataColumnNames.);
-                    preparedStatement.setObject(i, id);
+                Iterator<String> metaNameIterator = metaNames.iterator();
+                int i = 4;
+                while(metaNameIterator.hasNext()) {
+                    preparedStatement.setObject(i++, embeddedMetadata.toMap().entrySet().get(metaNameIterator.next()));
                 }
                 preparedStatement.executeUpdate();
             }
