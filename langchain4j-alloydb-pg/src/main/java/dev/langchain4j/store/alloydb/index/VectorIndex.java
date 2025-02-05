@@ -7,5 +7,5 @@ public interface VectorIndex {
     public String getIndexOptions();
 
     public List<String> getParameterSettings();
-    
+
 }
