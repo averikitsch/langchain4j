@@ -1,4 +1,4 @@
-package dev.langchain4j.store.embedding.alloydb.index;
+package dev.langchain4j.store.alloydb.index;
 
 public class DistanceStrategy {
 
