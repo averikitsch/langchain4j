@@ -1,4 +1,4 @@
-package dev.langchain4j.store.alloydb.index;
+package dev.langchain4j.index;
 
 import java.util.ArrayList;
 import java.util.List;
