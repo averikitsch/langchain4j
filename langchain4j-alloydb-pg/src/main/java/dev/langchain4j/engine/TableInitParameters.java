@@ -1,10 +1,10 @@
-package dev.langchain4j.store.alloydb.engine;
+package dev.langchain4j.engine;
 
 import java.util.List;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import dev.langchain4j.store.embedding.alloydb.MetadataColumn;
+import dev.langchain4j.engine.MetadataColumn;
 
 public class TableInitParameters {
 

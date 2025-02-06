@@ -1,4 +1,4 @@
-package dev.langchain4j.store.alloydb.embedding;
+package dev.langchain4j.engine;
 
 import java.sql.Connection;
 import java.sql.SQLException;
