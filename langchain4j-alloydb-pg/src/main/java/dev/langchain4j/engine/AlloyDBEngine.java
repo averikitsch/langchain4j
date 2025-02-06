@@ -1,4 +1,4 @@
-package dev.langchain4j.store.alloydb.engine;
+package dev.langchain4j.engine;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -21,7 +21,7 @@ import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import dev.langchain4j.store.TableInitParameters;
+import dev.langchain4j.engine.TableInitParameters;
 
 public class AlloyDBEngine {
 

@@ -1,4 +1,4 @@
-package dev.langchain4j.store.alloydb.embedding;
+package dev.langchain4j.store.embedding.alloydb;
 
 import java.util.Collection;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.alloydb.engine.AlloyDBEngine;
+import dev.langchain4j.engine.AlloyDBEngine;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;

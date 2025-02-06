@@ -1,4 +1,4 @@
-package dev.langchain4j.store.alloydb.engine;
+package dev.langchain4j.engine;
 
 public class MetadataColumn {
 
