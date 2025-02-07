@@ -21,7 +21,7 @@ import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import dev.langchain4j.engine.TableInitParameters;
+import dev.langchain4j.engine.EmbeddingStoreConfig;
 
 public class AlloyDBEngine {
 
@@ -121,38 +121,38 @@ public class AlloyDBEngine {
     }
 
     /**
-     * @param tableInitParameters contains the parameters necesary to intialize
+     * @param embeddingStoreConfig contains the parameters necesary to intialize
      * the Vector table
      */
-    public void initVectorStoreTable(TableInitParameters tableInitParameters) {
+    public void initVectorStoreTable(EmbeddingStoreConfig embeddingStoreConfig) {
         try (Connection connection = getConnection();) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
 
-            if (tableInitParameters.getOverwriteExisting()) {
+            if (embeddingStoreConfig.getOverwriteExisting()) {
                 statement.executeUpdate(String.format("DROP TABLE \"%s\".\"%s\"",
-                        tableInitParameters.getSchemaName(),
-                        tableInitParameters.getTableName()));
+                embeddingStoreConfig.getSchemaName(),
+                        embeddingStoreConfig.getTableName()));
             }
             String metadataClause = "";
-            if (tableInitParameters.getMetadataColumns() != null && !tableInitParameters.getMetadataColumns().isEmpty()) {
+            if (embeddingStoreConfig.getMetadataColumns() != null && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
                 metadataClause += String.format(", %s",
-                        tableInitParameters.getMetadataColumns()
+                embeddingStoreConfig.getMetadataColumns()
                                 .stream().map(MetadataColumn::generateColumnString)
                                 .collect(Collectors.joining(", ")));
             }
-            if (tableInitParameters.getStoreMetadata()) {
+            if (embeddingStoreConfig.getStoreMetadata()) {
                 metadataClause += String.format(", %s", new MetadataColumn(
-                        tableInitParameters.getMetadataJsonColumn(), "JSON", true).generateColumnString());
+                    embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true).generateColumnString());
             }
             String query = String.format("CREATE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NOT NULL, \"%s\" vector(%d) NOT NULL%s)",
-                    tableInitParameters.getSchemaName(), tableInitParameters.getTableName(),
-                    tableInitParameters.getIdColumn(), tableInitParameters.getContentColumn(),
-                    tableInitParameters.getEmbeddingColumn(), tableInitParameters.getVectorSize(), metadataClause);
+                    embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName(),
+                    embeddingStoreConfig.getIdColumn(), embeddingStoreConfig.getContentColumn(),
+                    embeddingStoreConfig.getEmbeddingColumn(), embeddingStoreConfig.getVectorSize(), metadataClause);
             statement.executeUpdate(query);
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Failed to initialize vector store table: \"%s\".\"%s\"",
-                    tableInitParameters.getSchemaName(), tableInitParameters.getTableName(), ex));
+                    embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName(), ex));
         }
     }
 
