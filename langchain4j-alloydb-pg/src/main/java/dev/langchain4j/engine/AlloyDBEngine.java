@@ -69,7 +69,8 @@ public class AlloyDBEngine {
             throw new IllegalStateException("Either one of user or password is blank, expected both user and password to be valid credentials or empty");
         }
         String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId, "projectId")).append("/locations/")
-                .append(ensureNotBlank(region, "region")).append("/clusters/").append(ensureNotBlank(cluster, "cluster")).append("/instances/").append(ensureNotBlank(instance, "instance")).toString();
+                .append(ensureNotBlank(region, "region")).append("/clusters/").append(ensureNotBlank(cluster, "cluster")).append("/instances/")
+                .append(ensureNotBlank(instance, "instance")).toString();
         dataSource = createDataSource(database, user, password, instanceName, ipType, enableIAMAuth);
     }
 
@@ -119,33 +120,39 @@ public class AlloyDBEngine {
         return connection;
     }
 
-
     /**
-     * @param tableInitParameters contains the parameters necesary to intialize the Vector table 
+     * @param tableInitParameters contains the parameters necesary to intialize
+     * the Vector table
      */
     public void initVectorStoreTable(TableInitParameters tableInitParameters) {
         try (Connection connection = getConnection();) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
-            statement.executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS %s", tableInitParameters.getSchemaName()));
 
             if (tableInitParameters.getOverwriteExisting()) {
-                statement.executeUpdate(String.format("DROP TABLE %s.%s", tableInitParameters.getSchemaName(), tableInitParameters.getTableName()));
+                statement.executeUpdate(String.format("DROP TABLE \"%s\".\"%s\"",
+                        tableInitParameters.getSchemaName(),
+                        tableInitParameters.getTableName()));
             }
             String metadataClause = "";
             if (tableInitParameters.getMetadataColumns() != null && !tableInitParameters.getMetadataColumns().isEmpty()) {
-                if (!tableInitParameters.getStoreMetadata()) {
-                    throw new IllegalStateException("storeMetadata option is disabled but metadata was provided");
-                }
-                metadataClause += String.format(", %s, %s", new MetadataColumn(tableInitParameters.getMetadataJsonColumn(), "JSON", true).generateColumnString(), tableInitParameters.getMetadataColumns().stream().map(MetadataColumn::generateColumnString).collect(Collectors.joining(",")));
-            } else if (tableInitParameters.getStoreMetadata()) {
-                throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
+                metadataClause += String.format(", %s",
+                        tableInitParameters.getMetadataColumns()
+                                .stream().map(MetadataColumn::generateColumnString)
+                                .collect(Collectors.joining(", ")));
             }
-            String query = String.format("CREATE TABLE %s.%s (%s UUID PRIMARY KEY, %s TEXT, %s vector(%d) NOT NULL%s)", tableInitParameters.getSchemaName(), tableInitParameters.getTableName(), tableInitParameters.getEmbeddingIdColumn(),
-            tableInitParameters.getContentColumn(), tableInitParameters.getEmbeddingColumn(), tableInitParameters.getVectorSize(), metadataClause);
+            if (tableInitParameters.getStoreMetadata()) {
+                metadataClause += String.format(", %s", new MetadataColumn(
+                        tableInitParameters.getMetadataJsonColumn(), "JSON", true).generateColumnString());
+            }
+            String query = String.format("CREATE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NOT NULL, \"%s\" vector(%d) NOT NULL%s)",
+                    tableInitParameters.getSchemaName(), tableInitParameters.getTableName(),
+                    tableInitParameters.getIdColumn(), tableInitParameters.getContentColumn(),
+                    tableInitParameters.getEmbeddingColumn(), tableInitParameters.getVectorSize(), metadataClause);
             statement.executeUpdate(query);
         } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Failed to initialize vector store table: %s.%s", tableInitParameters.getSchemaName(), tableInitParameters.getTableName(), ex));
+            throw new RuntimeException(String.format("Failed to initialize vector store table: \"%s\".\"%s\"",
+                    tableInitParameters.getSchemaName(), tableInitParameters.getTableName(), ex));
         }
     }
 

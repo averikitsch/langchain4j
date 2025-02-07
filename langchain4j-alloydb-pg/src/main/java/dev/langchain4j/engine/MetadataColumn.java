@@ -13,7 +13,7 @@ public class MetadataColumn {
     }
 
     public String generateColumnString() {
-        return String.format("%s %s %s", name, type, nullable ? "" : "NOT NULL");
+        return String.format("\"%s\" %s %s", name, type, nullable ? "" : "NOT NULL");
     }
 
 }
