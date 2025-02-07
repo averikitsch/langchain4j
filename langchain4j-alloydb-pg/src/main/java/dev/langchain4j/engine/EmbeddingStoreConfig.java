@@ -6,14 +6,14 @@ import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import dev.langchain4j.engine.MetadataColumn;
 
-public class TableInitParameters {
+public class EmbeddingStoreConfig {
 
     private final String tableName;
     private final Integer vectorSize;
     private final String schemaName;
     private final String contentColumn;
     private final String embeddingColumn;
-    private final String embeddingIdColumn;
+    private final String idColumn;
     private final List<MetadataColumn> metadataColumns;
     private final String metadataJsonColumn;
     private final Boolean overwriteExisting;
@@ -31,8 +31,7 @@ public class TableInitParameters {
      * custom name
      * @param embeddingColumn (Default: "embedding") create the embedding column
      * with custom name
-     * @param embeddingIdColumn (Optional, Default: "langchain_id") Column to
-     * store ids.
+     * @param idColumn (Optional, Default: "langchain_id") Column to store ids.
      * @param metadataColumns list of SQLAlchemy Columns to create for custom
      * metadata
      * @param metadataJsonColumn (Default: "langchain_metadata") the column to
@@ -42,12 +41,12 @@ public class TableInitParameters {
      * @param storeMetadata (Default: False) boolean to store extra metadata in
      * metadata column if not described in “metadata” field list
      */
-    private TableInitParameters(String tableName, Integer vectorSize, String schemaName, String contentColumn, String embeddingColumn, String embeddingIdColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, Boolean overwriteExisting, Boolean storeMetadata) {
+    private EmbeddingStoreConfig(String tableName, Integer vectorSize, String schemaName, String contentColumn, String embeddingColumn, String idColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, Boolean overwriteExisting, Boolean storeMetadata) {
         ensureNotBlank(tableName, "tableName");
-        ensureGreaterThanZero(vectorSize, "vectoreSize");
+        ensureGreaterThanZero(vectorSize, "vectorSize");
         this.contentColumn = contentColumn;
         this.embeddingColumn = embeddingColumn;
-        this.embeddingIdColumn = embeddingIdColumn;
+        this.idColumn = idColumn;
         this.metadataColumns = metadataColumns;
         this.metadataJsonColumn = metadataJsonColumn;
         this.overwriteExisting = overwriteExisting;
@@ -81,8 +80,8 @@ public class TableInitParameters {
         return embeddingColumn;
     }
 
-    public String getEmbeddingIdColumn() {
-        return embeddingIdColumn;
+    public String idColumn() {
+        return idColumn;
     }
 
     public List<MetadataColumn> getMetadataColumns() {
@@ -108,7 +107,7 @@ public class TableInitParameters {
         private String schemaName;
         private String contentColumn;
         private String embeddingColumn;
-        private String embeddingIdColumn;
+        private String idColumn;
         private List<MetadataColumn> metadataColumns;
         private String metadataJsonColumn;
         private Boolean overwriteExisting;
@@ -118,7 +117,7 @@ public class TableInitParameters {
             this.schemaName = "public";
             this.contentColumn = "content";
             this.embeddingColumn = "embedding";
-            this.embeddingIdColumn = "langchain_id";
+            this.idColumn = "langchain_id";
             this.metadataJsonColumn = "langchain_metadata";
             this.overwriteExisting = false;
             this.storeMetadata = false;
@@ -169,11 +168,11 @@ public class TableInitParameters {
         }
 
         /**
-         * @param embeddingIdColumn (Optional, Default: "langchain_id") Column
-         * to store ids.
+         * @param idColumn (Optional, Default: "langchain_id") Column to store
+         * ids.
          */
-        public Builder embeddingIdColumn(String embeddingIdColumn) {
-            this.embeddingIdColumn = embeddingIdColumn;
+        public Builder idColumn(String idColumn) {
+            this.idColumn = idColumn;
             return this;
         }
 
@@ -213,8 +212,8 @@ public class TableInitParameters {
             return this;
         }
 
-        public TableInitParameters build() {
-            return new TableInitParameters(tableName, vectorSize, schemaName, contentColumn, embeddingColumn, embeddingIdColumn, metadataColumns, metadataJsonColumn, overwriteExisting, storeMetadata);
+        public EmbeddingStoreConfig build() {
+            return new EmbeddingStoreConfig(tableName, vectorSize, schemaName, contentColumn, embeddingColumn, idColumn, metadataColumns, metadataJsonColumn, overwriteExisting, storeMetadata);
         }
     }
 }
