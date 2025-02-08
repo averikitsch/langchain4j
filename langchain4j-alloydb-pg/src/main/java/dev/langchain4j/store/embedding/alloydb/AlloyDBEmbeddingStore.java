@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.engine.AlloyDBEngine;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -69,16 +70,19 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     @Override
-    public String add(Embedding embedding, TextSegment embedded) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
     public List<String> addAll(List<Embedding> embeddings) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
+    public String add(Embedding embedding, TextSegment embedded) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public List<String> addAll(List<Embedding> embeddings, List<TextSegment> embedded) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
