@@ -52,7 +52,7 @@ public class AlloyDBEngineIT {
 
         defaultConnection = engine.getConnection();
 
-        defaultConnection.createStatement().executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS %s", CUSTOM_SCHEMA));
+        defaultConnection.createStatement().executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS \"%s\"", CUSTOM_SCHEMA));
 
         defaultParameters = EmbeddingStoreConfig.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).build();
 
