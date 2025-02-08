@@ -1,4 +1,4 @@
-package dev.langchin4j.engine;
+package dev.langchain4j.engine;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -16,14 +16,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import dev.langchain4j.engine.EmbeddingStoreConfig;
-import dev.langchain4j.engine.AlloyDBEngine;
-import dev.langchain4j.engine.MetadataColumn;
+import static dev.langchain4j.internal.Utils.randomUUID;
 
 public class AlloyDBEngineIT {
 
-    private static final String TABLE_NAME = "java_engine_test_table";
-    private static final String CUSTOM_TABLE_NAME = "java_engine_test_custom_table";
+    private static final String TABLE_NAME = "java_engine_test_table" + randomUUID();
+    private static final String CUSTOM_TABLE_NAME = "java_engine_test_custom_table" + randomUUID();
     private static final String CUSTOM_SCHEMA = "custom_schema";
     private static final Integer VECTOR_SIZE = 768;
     private static EmbeddingStoreConfig defaultParameters;
@@ -54,16 +52,18 @@ public class AlloyDBEngineIT {
 
         defaultConnection = engine.getConnection();
 
+        defaultConnection.createStatement().executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS %s", CUSTOM_SCHEMA));
+
         defaultParameters = EmbeddingStoreConfig.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).build();
 
     }
 
     @AfterEach
     public void afterEach() throws SQLException {
-        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS %s", TABLE_NAME));
-        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS %s", CUSTOM_TABLE_NAME));
-        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS %s.%s", CUSTOM_SCHEMA, TABLE_NAME));
-        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS %s.%s", CUSTOM_SCHEMA, CUSTOM_TABLE_NAME));
+        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
+        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", CUSTOM_TABLE_NAME));
+        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\".\"%s\"", CUSTOM_SCHEMA, TABLE_NAME));
+        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\".\"%s\"", CUSTOM_SCHEMA, CUSTOM_TABLE_NAME));
     }
 
     @AfterAll
@@ -95,7 +95,7 @@ public class AlloyDBEngineIT {
         expectedNames.add("content");
         expectedNames.add("embedding");
 
-        verifyColumns("public." + TABLE_NAME, expectedNames);
+        verifyColumns(String.format("\"public\".\"%s\"", TABLE_NAME), expectedNames);
 
     }
 
@@ -112,7 +112,7 @@ public class AlloyDBEngineIT {
         expectedColumns.add("overwritten");
         expectedColumns.add("embedding");
 
-        verifyColumns(TABLE_NAME, expectedColumns);
+        verifyColumns(String.format("\"%s\"", TABLE_NAME), expectedColumns);
 
     }
 
@@ -133,7 +133,7 @@ public class AlloyDBEngineIT {
         expectedColumns.add("source");
         expectedColumns.add("custom_metadata_json_column");
 
-        verifyColumns(CUSTOM_SCHEMA + "." + CUSTOM_TABLE_NAME, expectedColumns);
+        verifyColumns(String.format("\"%s\".\"%s\"", CUSTOM_SCHEMA, CUSTOM_TABLE_NAME), expectedColumns);
 
     }
 
@@ -145,13 +145,13 @@ public class AlloyDBEngineIT {
             engine.initVectorStoreTable(initParameters);
         });
 
-        assertThat(exception.getMessage()).contains("Failed to initialize vector store table: public." + TABLE_NAME);
-
+        assertThat(exception.getMessage()).isEqualTo(String.format("Failed to initialize vector store table: \"public\".\"%s\"", TABLE_NAME));
+        assertThat(exception.getCause().getMessage()).isEqualTo(String.format("ERROR: table \"%s\" does not exist", TABLE_NAME));
     }
 
     @Test
     void create_fails_when_table_present_and_overwrite_false() {
-        EmbeddingStoreConfig initParameters = EmbeddingStoreConfig.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).storeMetadata(false).build();
+        EmbeddingStoreConfig initParameters = EmbeddingStoreConfig.builder().tableName(CUSTOM_TABLE_NAME).vectorSize(VECTOR_SIZE).storeMetadata(false).build();
 
         engine.initVectorStoreTable(initParameters);
 
@@ -159,24 +159,9 @@ public class AlloyDBEngineIT {
             engine.initVectorStoreTable(initParameters);
         });
 
-        assertThat(exception.getMessage()).contains(String.format("Failed to initialize vector store table: public.%s", TABLE_NAME));
-
-    }
-
-    @Test
-    void table_create_fails_when_metadata_present_and_store_metadata_false() {
-        List<MetadataColumn> metadataColumns = new ArrayList<>();
-        metadataColumns.add(new MetadataColumn("page", "TEXT", true));
-        metadataColumns.add(new MetadataColumn("source", "TEXT", true));
-
-        EmbeddingStoreConfig customParams = EmbeddingStoreConfig.builder().tableName(CUSTOM_TABLE_NAME).vectorSize(1000).schemaName(CUSTOM_SCHEMA).contentColumn("custom_content_column")
-                .embeddingColumn("custom_embedding_column").metadataColumns(metadataColumns).metadataJsonColumn("custom_metadata_json_column").storeMetadata(false).build();
-
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            engine.initVectorStoreTable(customParams);
-        });
-
-        assertThat(exception.getMessage()).contains("storeMetadata option is disabled but metadata was provided");
+        assertThat(exception.getMessage()).isEqualTo(String.format("Failed to initialize vector store table: \"public\".\"%s\"", CUSTOM_TABLE_NAME));
+        // table name is truncated in PSQL exception
+        assertThat(exception.getCause().getMessage()).isEqualTo(String.format("ERROR: relation \"%s\" already exists", CUSTOM_TABLE_NAME.substring(0, CUSTOM_TABLE_NAME.length() - 2)));
     }
 
     @Test

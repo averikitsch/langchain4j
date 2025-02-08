@@ -21,7 +21,6 @@ import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import dev.langchain4j.engine.EmbeddingStoreConfig;
 
 public class AlloyDBEngine {
 
@@ -145,14 +144,14 @@ public class AlloyDBEngine {
                 metadataClause += String.format(", %s", new MetadataColumn(
                     embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true).generateColumnString());
             }
-            String query = String.format("CREATE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NOT NULL, \"%s\" vector(%d) NOT NULL%s)",
+            String query = String.format("CREATE TABLE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NOT NULL, \"%s\" vector(%d) NOT NULL%s)",
                     embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName(),
                     embeddingStoreConfig.getIdColumn(), embeddingStoreConfig.getContentColumn(),
                     embeddingStoreConfig.getEmbeddingColumn(), embeddingStoreConfig.getVectorSize(), metadataClause);
             statement.executeUpdate(query);
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Failed to initialize vector store table: \"%s\".\"%s\"",
-                    embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName(), ex));
+                    embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()), ex);
         }
     }
 
