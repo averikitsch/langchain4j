@@ -80,7 +80,7 @@ public class EmbeddingStoreConfig {
         return embeddingColumn;
     }
 
-    public String idColumn() {
+    public String getIdColumn() {
         return idColumn;
     }
 
