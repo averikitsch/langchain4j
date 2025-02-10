@@ -19,6 +19,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import dev.langchain4j.engine.AlloyDBEngine;
+import dev.langchain4j.engine.MetadataColumn;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
