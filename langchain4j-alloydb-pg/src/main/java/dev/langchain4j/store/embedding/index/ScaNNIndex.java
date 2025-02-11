@@ -6,10 +6,10 @@ public class ScaNNIndex implements VectorIndex {
     private final String quantizer;
     private final DistanceStrategy distanceStrategy;
 
-    public ScaNNIndex(Integer numLeaves, String quantizer, Integer num_leaves_to_search, Integer pre_reordering_num_neighbors, DistanceStrategy distanceStrategy) {
-        this.numLeaves = (numLeaves != null) ? numLeaves : 5;
-        this.quantizer = (quantizer != null) ? quantizer : "sq8";
-        this.distanceStrategy = distanceStrategy != null ? distanceStrategy : DistanceStrategy.COSINE_DISTANCE;
+    public ScaNNIndex(IndexConfig indexConfig) {
+        this.numLeaves = indexConfig.getNumLeaves();
+        this.quantizer = indexConfig.getQuantizer();
+        this.distanceStrategy = indexConfig.getDistanceStrategy();
     }
 
     @Override

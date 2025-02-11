@@ -6,10 +6,10 @@ public class IVFIndex implements VectorIndex {
     private final String quantizer;
     private final DistanceStrategy distanceStrategy;
 
-    public IVFIndex(Integer listCount, String quantizer, DistanceStrategy distanceStrategy) {
-        this.listCount = (listCount != null) ? listCount : 100;
-        this.quantizer = (quantizer != null) ? quantizer : "sq8";
-        this.distanceStrategy = distanceStrategy != null ? distanceStrategy : DistanceStrategy.COSINE_DISTANCE;
+    public IVFIndex(IndexConfig indexConfig) {
+        this.listCount = indexConfig.getListCount();
+        this.quantizer = indexConfig.getQuantizer();
+        this.distanceStrategy = indexConfig.getDistanceStrategy();
     }
 
     @Override
