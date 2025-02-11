@@ -1,13 +1,13 @@
 package dev.langchain4j.store.embedding.index;
 
 public class IndexConfig {
+
     private final Integer m;
     private final Integer efConstruction;
     private final Integer listCount;
     private final Integer numLeaves;
     private final String quantizer;
     private final DistanceStrategy distanceStrategy;
-
 
     public IndexConfig(Integer m, Integer efConstruction, Integer listCount, Integer numLeaves, String quantizer, DistanceStrategy distanceStrategy) {
         this.m = m;
@@ -18,42 +18,36 @@ public class IndexConfig {
         this.distanceStrategy = distanceStrategy;
     }
 
-
     public Integer getM() {
         return this.m;
     }
-
 
     public Integer getEfConstruction() {
         return this.efConstruction;
     }
 
-
     public Integer getListCount() {
         return this.listCount;
     }
-
 
     public Integer getNumLeaves() {
         return this.numLeaves;
     }
 
-
     public String getQuantizer() {
         return this.quantizer;
     }
 
-
     public DistanceStrategy getDistanceStrategy() {
         return this.distanceStrategy;
     }
-
 
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
+
         private Integer m;
         private Integer efConstruction;
         private Integer listCount;
@@ -61,7 +55,6 @@ public class IndexConfig {
         private String quantizer;
         private DistanceStrategy distanceStrategy;
 
-        
         public Builder() {
             m = 16;
             efConstruction = 64;
