@@ -1,5 +1,7 @@
 package dev.langchain4j.store.embedding.index;
 
+import java.util.List;
+
 public class IndexConfig {
 
     private final Integer m;
@@ -8,14 +10,16 @@ public class IndexConfig {
     private final Integer numLeaves;
     private final String quantizer;
     private final DistanceStrategy distanceStrategy;
+    private final List<String> partialIndexes;
 
-    public IndexConfig(Integer m, Integer efConstruction, Integer listCount, Integer numLeaves, String quantizer, DistanceStrategy distanceStrategy) {
+    public IndexConfig(Integer m, Integer efConstruction, Integer listCount, Integer numLeaves, String quantizer, DistanceStrategy distanceStrategy, List<String> partialIndexes) {
         this.m = m;
         this.efConstruction = efConstruction;
         this.listCount = listCount;
         this.numLeaves = numLeaves;
         this.quantizer = quantizer;
         this.distanceStrategy = distanceStrategy;
+        this.partialIndexes = partialIndexes;
     }
 
     public Integer getM() {
@@ -42,6 +46,10 @@ public class IndexConfig {
         return this.distanceStrategy;
     }
 
+    public List<String> getPartialIndexes() {
+        return this.partialIndexes;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -54,6 +62,7 @@ public class IndexConfig {
         private Integer numLeaves;
         private String quantizer;
         private DistanceStrategy distanceStrategy;
+        private List<String> partialIndexes;
 
         public Builder() {
             m = 16;
@@ -112,8 +121,16 @@ public class IndexConfig {
             return this;
         }
 
+        /**
+         * @param partialIndexes Optional
+         */
+        public Builder partialIndexes(List<String> partialIndexes) {
+            this.partialIndexes = partialIndexes;
+            return this;
+        }
+
         public IndexConfig build() {
-            return new IndexConfig(m, efConstruction, listCount, numLeaves, quantizer, distanceStrategy);
+            return new IndexConfig(m, efConstruction, listCount, numLeaves, quantizer, distanceStrategy, partialIndexes);
         }
     }
 }
