@@ -5,9 +5,9 @@ public class IVFFlatIndex implements VectorIndex {
     private final Integer listCount;
     private final DistanceStrategy distanceStrategy;
 
-    public IVFFlatIndex(Integer listCount, DistanceStrategy distanceStrategy) {
-        this.listCount = (listCount != null) ? listCount : 1;
-        this.distanceStrategy = distanceStrategy != null ? distanceStrategy : DistanceStrategy.COSINE_DISTANCE;
+    public IVFFlatIndex(IndexConfig indexConfig) {
+        this.listCount = indexConfig.getListCount();
+        this.distanceStrategy = indexConfig.getDistanceStrategy();
     }
 
     @Override
