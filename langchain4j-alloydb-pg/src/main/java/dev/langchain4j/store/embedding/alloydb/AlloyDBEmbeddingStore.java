@@ -142,13 +142,13 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private void addAllInternal(List<String> ids, List<Embedding> embeddings, List<TextSegment> embeddedTextSegments) {
-        if (ids.size() != embeddings.size() || embeddings.size() != embeddedTextSegments.size()) {
-            throw new IllegalArgumentException("List parameters ids shouldn't be different sizes!");
+        if (ids.size() != embeddings.size()) {
+            throw new IllegalArgumentException("List parameters ids and embeddings shouldn't be different sizes!");
         }
         for (int i = 0; i < ids.size(); i++) {
             String id = ids.get(i);
             Embedding embedding = embeddings.get(i);
-            TextSegment embeddedTextSegment = embeddedTextSegments.get(i);
+            TextSegment embeddedTextSegment = embeddedTextSegments != null ? embeddedTextSegments.get(i) : null;
             try (Connection connection = engine.getConnection()) {
                 String embeddedText = embeddedTextSegment != null ? embeddedTextSegment.text() : null;
 
