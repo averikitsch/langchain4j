@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import dev.langchain4j.config.DocumentTableConfig;
 import static dev.langchain4j.internal.Utils.randomUUID;
 
 public class AlloyDBEngineIT {
@@ -25,6 +26,7 @@ public class AlloyDBEngineIT {
     private static final String CUSTOM_SCHEMA = "custom_schema";
     private static final Integer VECTOR_SIZE = 768;
     private static EmbeddingStoreConfig defaultParameters;
+    private static DocumentTableConfig documentTableConfig;
     private static String IAM_EMAIL;
     private static String projectId;
     private static String region;
@@ -55,7 +57,7 @@ public class AlloyDBEngineIT {
         defaultConnection.createStatement().executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS \"%s\"", CUSTOM_SCHEMA));
 
         defaultParameters = EmbeddingStoreConfig.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).build();
-
+        documentTableConfig = DocumentTableConfig.builder().tableName(TABLE_NAME).build();
     }
 
     @AfterEach
@@ -82,6 +84,11 @@ public class AlloyDBEngineIT {
             }
             assertThat(actualNames).isEqualTo(expectedColumns);
         }
+    }
+
+    @Test
+    void initialize_document_table_with_default_schema() throws Exception {
+        engine.initDocumentTable(documentTableConfig);
     }
 
     @Test

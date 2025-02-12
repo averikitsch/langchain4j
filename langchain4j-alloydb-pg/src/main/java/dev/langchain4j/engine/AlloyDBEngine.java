@@ -17,6 +17,7 @@ import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+import dev.langchain4j.config.DocumentTableConfig;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.readBytes;
@@ -49,8 +50,7 @@ public class AlloyDBEngine {
             String user,
             String password,
             String ipType,
-            String iamAccountEmail
-    ) {
+            String iamAccountEmail) {
         Boolean enableIAMAuth;
         if (isNullOrBlank(user) && isNullOrBlank(password)) {
             enableIAMAuth = true;
@@ -65,10 +65,13 @@ public class AlloyDBEngine {
             enableIAMAuth = false;
             log.debug("Found user and password, IAM Auth disabled");
         } else {
-            throw new IllegalStateException("Either one of user or password is blank, expected both user and password to be valid credentials or empty");
+            throw new IllegalStateException(
+                    "Either one of user or password is blank, expected both user and password to be valid credentials or empty");
         }
-        String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId, "projectId")).append("/locations/")
-                .append(ensureNotBlank(region, "region")).append("/clusters/").append(ensureNotBlank(cluster, "cluster")).append("/instances/")
+        String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId, "projectId"))
+                .append("/locations/")
+                .append(ensureNotBlank(region, "region")).append("/clusters/")
+                .append(ensureNotBlank(cluster, "cluster")).append("/instances/")
                 .append(ensureNotBlank(instance, "instance")).toString();
         dataSource = createDataSource(database, user, password, instanceName, ipType, enableIAMAuth);
     }
@@ -79,8 +82,7 @@ public class AlloyDBEngine {
             String password,
             String instanceName,
             String ipType,
-            Boolean enableIAMAuth
-    ) {
+            Boolean enableIAMAuth) {
         HikariConfig config = new HikariConfig();
         config.setUsername(ensureNotBlank(user, "user"));
         if (enableIAMAuth) {
@@ -130,21 +132,23 @@ public class AlloyDBEngine {
 
             if (embeddingStoreConfig.getOverwriteExisting()) {
                 statement.executeUpdate(String.format("DROP TABLE \"%s\".\"%s\"",
-                embeddingStoreConfig.getSchemaName(),
+                        embeddingStoreConfig.getSchemaName(),
                         embeddingStoreConfig.getTableName()));
             }
             String metadataClause = "";
-            if (embeddingStoreConfig.getMetadataColumns() != null && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
+            if (embeddingStoreConfig.getMetadataColumns() != null
+                    && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
                 metadataClause += String.format(", %s",
-                embeddingStoreConfig.getMetadataColumns()
+                        embeddingStoreConfig.getMetadataColumns()
                                 .stream().map(MetadataColumn::generateColumnString)
                                 .collect(Collectors.joining(", ")));
             }
             if (embeddingStoreConfig.getStoreMetadata()) {
                 metadataClause += String.format(", %s", new MetadataColumn(
-                    embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true).generateColumnString());
+                        embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true).generateColumnString());
             }
-            String query = String.format("CREATE TABLE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NOT NULL, \"%s\" vector(%d) NOT NULL%s)",
+            String query = String.format(
+                    "CREATE TABLE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NOT NULL, \"%s\" vector(%d) NOT NULL%s)",
                     embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName(),
                     embeddingStoreConfig.getIdColumn(), embeddingStoreConfig.getContentColumn(),
                     embeddingStoreConfig.getEmbeddingColumn(), embeddingStoreConfig.getVectorSize(), metadataClause);
@@ -156,11 +160,44 @@ public class AlloyDBEngine {
     }
 
     public void initChatHistoryTable() {
-        //to be implemented
+        // to be implemented
     }
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    /**
+     * Initialize document table.
+     *
+     * @param documentTableConfig configuration paramters for document table
+     * @throws Exception if database connection fails
+     */
+    public void initDocumentTable(DocumentTableConfig documentTableConfig) throws Exception {
+        StringBuilder query = new StringBuilder("CREATE TABLE IF NOT EXISTS ");
+        query.append("\"").append(documentTableConfig.getSchemaName()).append("\"").append(".")
+                .append("\"").append(documentTableConfig.getTableName()).append("\"").append(" (")
+                .append(documentTableConfig.getContentColumn())
+                .append(" TEXT NOT NULL");
+        for (MetadataColumn column : documentTableConfig.getMetadataColumns()) {
+            query.append(",").append(column.getName()).append(" ").append(column.getType());
+            if (column.getNullable()) {
+                query.append(" NOT NULL");
+            }
+        }
+        query.append(documentTableConfig.isStoreMetadata()
+                ? isNotNullOrBlank(documentTableConfig.getMetadataJsonColumn())
+                ? "," + documentTableConfig.getMetadataJsonColumn() + " JSON"
+                : ", langchain_metadata JSON"
+                : "");
+        query.append(");");
+        try (Connection connection = getConnection();) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(query.toString());
+        } catch (SQLException ex) {
+            log.atError().log("Failed to initilize document table: " + ex.getMessage());
+            throw new Exception(ex.getCause());
+        }
     }
 
     public static class Builder {
@@ -251,7 +288,8 @@ public class AlloyDBEngine {
         }
 
         public AlloyDBEngine build() {
-            return new AlloyDBEngine(projectId, region, cluster, instance, database, user, password, ipType, iamAccountEmail);
+            return new AlloyDBEngine(projectId, region, cluster, instance, database, user, password, ipType,
+                    iamAccountEmail);
         }
     }
 }
