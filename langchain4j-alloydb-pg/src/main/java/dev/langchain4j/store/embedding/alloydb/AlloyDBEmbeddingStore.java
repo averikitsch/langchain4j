@@ -1,8 +1,12 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -13,7 +17,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 
 public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
-    private static final Logger log = Logger.getLogger(AlloyDBEmbeddingStore.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(AlloyDBEmbeddingStore.class.getName());
     private final AlloyDBEngine engine;
     private final String tableName;
     private String schemaName;
@@ -89,7 +93,28 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void removeAll(Collection<String> ids) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (ids == null || ids.isEmpty()) {
+            throw new IllegalArgumentException("ids must not be null or empty");
+        }
+
+        String placeholders = "?";
+        for (int p = 1; p < ids.size(); p++) {
+            placeholders += ", ?";
+        }
+
+        String query = "DELETE FROM \"" + schemaName + "\".\"" + tableName + "\" WHERE \"" + idColumn + "\" IN (" + placeholders + ")";
+        try (PreparedStatement preparedStatement = engine.getConnection().prepareStatement(query)) {
+            int i = 1;
+            for (String id : ids) {
+                preparedStatement.setString(i++, id);
+            }
+            preparedStatement.executeUpdate();
+        } catch (SQLException ex) {
+            log.error(String.format("Exception caught when inserting into vector store table: \"%s\".\"%s\"",
+                    schemaName, tableName), ex);
+            throw new RuntimeException(ex);
+        }
+
     }
 
     public static class Builder {
