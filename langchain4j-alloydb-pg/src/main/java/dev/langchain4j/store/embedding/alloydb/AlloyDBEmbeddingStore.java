@@ -4,7 +4,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,17 +97,15 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new IllegalArgumentException("ids must not be null or empty");
         }
 
-        StringBuilder sb = new StringBuilder("?");
+        String placeholders = "?";
         for (int p = 1; p < ids.size(); p++) {
-            sb.append(", ?");
+            placeholders += ", ?";
         }
 
-        String placeholders = sb.toString();
-
-        String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE \"%s\" IN (%s)", schemaName, tableName, idColumn, placeholders);
+        String query = "DELETE FROM \"" + schemaName + "\".\"" + tableName + "\" WHERE \"" + idColumn + "\" IN (" + placeholders + ")";
         try (PreparedStatement preparedStatement = engine.getConnection().prepareStatement(query)) {
             int i = 1;
-            for(String id : ids) {
+            for (String id : ids) {
                 preparedStatement.setString(i++, id);
             }
             preparedStatement.executeUpdate();
