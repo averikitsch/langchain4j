@@ -1,9 +1,12 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import java.sql.Array;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,18 +100,14 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new IllegalArgumentException("ids must not be null or empty");
         }
 
-        String placeholders = "?";
-        for (int p = 1; p < ids.size(); p++) {
-            placeholders += ", ?";
-        }
+        String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s IN (?)", schemaName, tableName, idColumn);
 
-        String query = "DELETE FROM \"" + schemaName + "\".\"" + tableName + "\" WHERE \"" + idColumn + "\" IN (" + placeholders + ")";
-        try (PreparedStatement preparedStatement = engine.getConnection().prepareStatement(query)) {
-            int i = 1;
-            for (String id : ids) {
-                preparedStatement.setString(i++, id);
+        try (Connection conn = engine.getConnection()) {
+            try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+                Array array = conn.createArrayOf("uuid", ids.stream().map(UUID::fromString).toArray());
+                preparedStatement.setArray(1, array);
+                preparedStatement.executeUpdate();
             }
-            preparedStatement.executeUpdate();
         } catch (SQLException ex) {
             log.error(String.format("Exception caught when inserting into vector store table: \"%s\".\"%s\"",
                     schemaName, tableName), ex);
