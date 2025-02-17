@@ -364,15 +364,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param tableName (Required) the table name to create - does not
-         * append a suffix or prefix!
-         */
-        public Builder tableName(String tableName) {
-            this.tableName = tableName;
-            return this;
-        }
-
-        /**
          * @param schemaName (Default: "public") The schema name
          */
         public Builder schemaName(String schemaName) {
@@ -476,15 +467,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
          */
         public Builder queryOptions(List<String> queryOptions) {
             this.queryOptions = queryOptions;
-            return this;
-        }
-
-        /**
-         * @param engine The connection object to use
-         *
-         */
-        public Builder engine(AlloyDBEngine engine) {
-            this.engine = engine;
             return this;
         }
 
