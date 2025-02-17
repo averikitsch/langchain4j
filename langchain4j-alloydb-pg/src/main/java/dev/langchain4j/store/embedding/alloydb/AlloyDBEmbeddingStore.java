@@ -9,6 +9,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import static java.util.Collections.singletonList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,6 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.engine.AlloyDBEngine;
-import dev.langchain4j.engine.MetadataColumn;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
@@ -43,7 +43,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String contentColumn;
     private final String embeddingColumn;
     private final String idColumn;
-    private final List<MetadataColumn> metadataColumns;
+    private final List<String> metadataColumns;
     private final DistanceStrategy distanceStrategy;
     private final Integer k;
     private final Integer fetchK;
@@ -80,32 +80,30 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param queryOptions (Optional) QueryOptions class with vector search
      * parameters
      */
-    public AlloyDBEmbeddingStore(String tableName, String schemaName, String contentColumn, String embeddingColumn,
-            String idColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, List<String> ignoreMetadataColumnNames,
-            DistanceStrategy distanceStrategy, Integer k, Integer fetchK, Double lambdaMult, QueryOptions queryOptions, AlloyDBEngine engine) {
-        this.engine = engine;
-        this.tableName = tableName;
-        this.schemaName = schemaName;
-        this.contentColumn = contentColumn;
-        this.embeddingColumn = embeddingColumn;
-        this.idColumn = idColumn;
-        this.metadataJsonColumn = metadataJsonColumn;
-        this.metadataColumns = metadataColumns;
-        this.distanceStrategy = distanceStrategy;
-        this.k = k;
-        this.fetchK = fetchK;
-        this.lambdaMult = lambdaMult;
-        this.queryOptions = queryOptions;
+    public AlloyDBEmbeddingStore(Builder builder) {
 
         // check columns exist in the table
-        verifyEmbeddingStoreColumns(ignoreMetadataColumnNames);
+        verifyEmbeddingStoreColumns(builder.getIgnoreMetadataColumnNames());
+
+        this.engine = builder.getEngine();
+        this.tableName = builder.getTableName();
+        this.schemaName = builder.getSchemaName();
+        this.contentColumn = builder.getContentColumn();
+        this.embeddingColumn = builder.getEmbeddingColumn();
+        this.idColumn = builder.getIdColumn();
+        this.metadataJsonColumn = builder.getMetadataJsonColumn();
+        this.metadataColumns = builder.getMetadataColumns();
+        this.distanceStrategy = builder.getDistanceStrategy();
+        this.k = builder.getK();
+        this.fetchK = builder.getFetchK();
+        this.lambdaMult = builder.getLambdaMult();
+        this.queryOptions = builder.getQueryOptions();
+
     }
 
     private void verifyEmbeddingStoreColumns(List<String> ignoredColumns) {
-        if (!metadataColumns.isEmpty()) {
-            if (!ignoredColumns.isEmpty()) {
-                throw new IllegalArgumentException("Cannot use both metadataColumns and ignoreMetadataColumns at the same time.");
-            }
+        if (!metadataColumns.isEmpty() && !ignoredColumns.isEmpty()) {
+            throw new IllegalArgumentException("Cannot use both metadataColumns and ignoreMetadataColumns at the same time.");
         }
 
         String query = "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \"" + tableName + "\" AND table_schema = \"" + schemaName + "\"";
@@ -138,9 +136,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 metadataJsonColumn = null;
             }
 
-            for (MetadataColumn metadataColumn : metadataColumns) {
-                if (!allColumns.containsKey(metadataColumn.getName())) {
-                    throw new IllegalStateException("Metadata column, " + metadataColumn.getName() + ", is not type Vector.");
+            for (String metadataColumn : metadataColumns) {
+                if (!allColumns.containsKey(metadataColumn)) {
+                    throw new IllegalStateException("Metadata column, " + metadataColumn + ", is not type Vector.");
                 }
             }
 
@@ -157,10 +155,12 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
 
                 metadataColumns.addAll((allColumnsCopy.entrySet().stream()
-                        .map(e -> new MetadataColumn(e.getKey(), e.getValue(), true)).collect(Collectors.toList())));
+                        .map(e -> e.getKey()).collect(Collectors.toList())));
             }
 
         } catch (SQLException ex) {
+            log.error("Exception caught when verifying vector store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
+            throw new RuntimeException(ex);
         }
     }
 
@@ -186,7 +186,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public List<String> addAll(List<Embedding> embeddings) {
         List<String> ids = embeddings.stream().map(ignored -> randomUUID()).collect(toList());
-        List<TextSegment> nullTextSegments =  Collections.nCopies(ids.size(), (TextSegment) null);
+        List<TextSegment> nullTextSegments = Collections.nCopies(ids.size(), (TextSegment) null);
         addAllInternal(ids, embeddings, nullTextSegments);
         return ids;
     }
@@ -209,7 +209,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private void addInternal(String id, Embedding embedding, TextSegment textSegment) {
-        addAllInternal(List.of(id), List.of(embedding), List.of(textSegment));
+        addAllInternal(singletonList(id), singletonList(embedding), singletonList(textSegment));
     }
 
     private void addAllInternal(List<String> ids, List<Embedding> embeddings, List<TextSegment> textSegments) {
@@ -217,44 +217,35 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new IllegalArgumentException("List parameters ids and embeddings and textSegments shouldn't be different sizes!");
         }
         try (Connection connection = engine.getConnection()) {
-            String metadataColumnNames = ", " + metadataColumns.stream()
-                    .map(column -> "\"" + column.getName() + "\"").collect(Collectors.joining(", "));
-            int totalColumns = metadataColumns.size();
-
+            String metadataColumnNames = metadataColumns.stream()
+                    .map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
             if (isNotNullOrEmpty(metadataJsonColumn)) {
                 metadataColumnNames += ", \"" + metadataJsonColumn + "\"";
-                totalColumns++;
             }
-            // column names separated by comma
-            String columnNames = "\"" + idColumn + "\", \"" + embeddingColumn + "\", \"" + contentColumn + "\"," + metadataColumnNames;
-            totalColumns += 3;
-
+            int totalColumns = metadataColumnNames.split(",").length + 3;
             String placeholders = "?";
             for (int p = 1; p < totalColumns; p++) {
                 placeholders += ", ?";
             }
 
-            String query = "INSERT INTO \"" + schemaName + "\".\"" + tableName + "\" (" + columnNames + ") VALUES (" + placeholders + ");";
-
+            String query = String.format("INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\", %s) VALUES (%s)", schemaName, tableName, idColumn, contentColumn, embeddingColumn, metadataColumnNames, placeholders);
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 for (int i = 0; i < ids.size(); i++) {
                     String id = ids.get(i);
                     Embedding embedding = embeddings.get(i);
                     TextSegment textSegment = textSegments.get(i);
                     String text = textSegment != null ? textSegment.text() : null;
-
                     //assume metadata is always present langchain4j/langchain4j-core/src/main/java/dev/langchain4j/data/segment/TextSegment.java L30
                     Map<String, Object> embeddedMetadataCopy = textSegment.metadata().toMap().entrySet().stream()
                             .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-
                     preparedStatement.setString(1, id);
                     preparedStatement.setObject(2, embedding);
                     preparedStatement.setString(3, text);
                     int j = 4;
                     if (embeddedMetadataCopy != null && !embeddedMetadataCopy.isEmpty()) {
                         for (; j < metadataColumns.size(); j++) {
-                            if (embeddedMetadataCopy.containsKey(metadataColumns.get(j).getName())) {
-                                preparedStatement.setObject(j, embeddedMetadataCopy.remove(metadataColumns.get(j).getName()));
+                            if (embeddedMetadataCopy.containsKey(metadataColumns.get(j))) {
+                                preparedStatement.setObject(j, embeddedMetadataCopy.remove(metadataColumns.get(j)));
                             } else {
                                 preparedStatement.setObject(j, null);
                             }
@@ -271,8 +262,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     preparedStatement.addBatch();
 
                 }
-                preparedStatement.executeUpdate();
-
+                preparedStatement.executeBatch();
             } catch (JsonProcessingException ex) {
                 log.error("Exception caught when inserting into vector store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
                 throw new RuntimeException(ex);
@@ -284,10 +274,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
     public static class Builder {
 
         private String tableName;
@@ -295,7 +281,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         private String contentColumn;
         private String embeddingColumn;
         private String idColumn;
-        private List<MetadataColumn> metadataColumns;
+        private List<String> metadataColumns;
         private String metadataJsonColumn;
         private List<String> ignoreMetadataColumnNames;
         private DistanceStrategy distanceStrategy;
@@ -306,9 +292,10 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         private List<String> queryOptions;
         private AlloyDBEngine engine;
 
-        public Builder() {
+        public Builder(AlloyDBEngine engine, String tableName) {
+            this.engine = engine;
+            this.contentColumn = tableName;
             this.schemaName = "public";
-            this.contentColumn = "content";
             this.embeddingColumn = "embedding";
             this.idColumn = "langchain_id";
             this.metadataJsonColumn = "langchain_metadata";
@@ -318,6 +305,62 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             this.k = 4;
             this.fetchK = 20;
             this.lambdaMult = 0.5;
+        }
+
+        public AlloyDBEngine getEngine() {
+            return this.engine;
+        }
+
+        public String getTableName() {
+            return this.tableName;
+        }
+
+        public String getSchemaName() {
+            return this.schemaName;
+        }
+
+        public String getContentColumn() {
+            return this.contentColumn;
+        }
+
+        public String getEmbeddingColumn() {
+            return this.embeddingColumn;
+        }
+
+        public String getIdColumn() {
+            return this.idColumn;
+        }
+
+        public List<String> getMetadataColumns() {
+            return this.metadataColumns;
+        }
+
+        public DistanceStrategy getDistanceStrategy() {
+            return this.distanceStrategy;
+        }
+
+        public Integer getK() {
+            return this.k;
+        }
+
+        public Integer getFetchK() {
+            return this.fetchK;
+        }
+
+        public Double getLambdaMult() {
+            return this.lambdaMult;
+        }
+
+        public List<String> getQueryOptions() {
+            return this.queryOptions;
+        }
+
+        public String getMetadataJsonColumn() {
+            return this.metadataJsonColumn;
+        }
+
+        public List<String> getIgnoreMetadataColumnNames() {
+            return this.ignoreMetadataColumnNames;
         }
 
         /**
@@ -368,7 +411,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
          * @param metadataColumns list of SQLAlchemy Columns to create for
          * custom metadata
          */
-        public Builder metadataColumns(List<MetadataColumn> metadataColumns) {
+        public Builder metadataColumns(List<String> metadataColumns) {
             this.metadataColumns = metadataColumns;
             return this;
         }
@@ -446,9 +489,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         public AlloyDBEmbeddingStore build() {
-            return new AlloyDBEmbeddingStore(tableName, schemaName, contentColumn, embeddingColumn,
-                    idColumn, metadataColumns, metadataJsonColumn, ignoreMetadataColumnNames,
-                    distanceStrategy, k, fetchK, lambdaMult, queryOptions, engine);
+            return new AlloyDBEmbeddingStore(this);
         }
     }
 
