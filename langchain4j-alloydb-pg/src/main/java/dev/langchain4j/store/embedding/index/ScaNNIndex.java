@@ -36,6 +36,14 @@ public class ScaNNIndex implements BaseIndex {
         return partialIndexes;
     }
 
+    public Integer getNumLeaves() {
+        return numLeaves;
+    }
+
+    public String getQuantizer() {
+        return quantizer;
+    }
+
     public class Builder {
 
         private String indexType;

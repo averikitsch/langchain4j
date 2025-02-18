@@ -36,6 +36,14 @@ public class IVFIndex implements BaseIndex {
         return indexType;
     }
 
+    public Integer getListCount() {
+        return listCount;
+    }
+
+    public String getQuantizer() {
+        return quantizer;
+    }
+
     public class Builder {
 
         private String indexType;
