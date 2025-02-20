@@ -1,5 +1,6 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -7,26 +8,19 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import static java.util.Collections.singletonList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import static java.util.stream.Collectors.toList;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -219,85 +213,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 preparedStatement.executeUpdate();
             }
         } catch (SQLException ex) {
-            log.error(String.format("Exception caught when inserting into vector store table: \"%s\".\"%s\"",
-                    schemaName, tableName), ex);
-            throw new RuntimeException(ex);
-        }
-
-    }
-
-    private void addInternal(String id, Embedding embedding, TextSegment textSegment) {
-        addAll(singletonList(id), singletonList(embedding), singletonList(textSegment));
-    }
-
-    @Override
-    public void addAll(List<String> ids, List<Embedding> embeddings, List<TextSegment> textSegments) {
-        if (ids.size() != embeddings.size() || embeddings.size() != textSegments.size()) {
-            throw new IllegalArgumentException("List parameters ids and embeddings and textSegments shouldn't be different sizes!");
-        }
-        try (Connection connection = engine.getConnection()) {
-            String metadataColumnNames = metadataColumns.stream()
-                    .map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
-
-            // idColumn, contentColumn and embeddedColumn
-            int totalColumns = 3;
-
-            if (isNotNullOrEmpty(metadataColumnNames)) {
-                totalColumns += metadataColumnNames.split(",").length;
-                metadataColumnNames = ", " + metadataColumnNames;
-            }
-
-            if (isNotNullOrEmpty(metadataJsonColumn)) {
-                metadataColumnNames += ", \"" + metadataJsonColumn + "\"";
-                totalColumns++;
-            }
-            
-            String placeholders = "?";
-            for (int p = 1; p < totalColumns; p++) {
-                placeholders += ", ?";
-            }
-
-            String query = String.format("INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)", schemaName, tableName, idColumn, contentColumn, embeddingColumn, metadataColumnNames, placeholders);
-            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                for (int i = 0; i < ids.size(); i++) {
-                    String id = ids.get(i);
-                    Embedding embedding = embeddings.get(i);
-                    TextSegment textSegment = textSegments.get(i);
-                    String text = textSegment != null ? textSegment.text() : null;
-                    //assume metadata is always present langchain4j/langchain4j-core/src/main/java/dev/langchain4j/data/segment/TextSegment.java L30
-                    Map<String, Object> embeddedMetadataCopy = textSegment.metadata().toMap().entrySet().stream()
-                            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                    preparedStatement.setString(1, id);
-                    preparedStatement.setObject(2, embedding);
-                    preparedStatement.setString(3, text);
-                    int j = 4;
-                    if (embeddedMetadataCopy != null && !embeddedMetadataCopy.isEmpty()) {
-                        for (; j < metadataColumns.size(); j++) {
-                            if (embeddedMetadataCopy.containsKey(metadataColumns.get(j))) {
-                                preparedStatement.setObject(j, embeddedMetadataCopy.remove(metadataColumns.get(j)));
-                            } else {
-                                preparedStatement.setObject(j, null);
-                            }
-                        }
-                        if (isNotNullOrEmpty(metadataJsonColumn)) {
-                            // metadataJsonColumn should be the last column left
-                            preparedStatement.setObject(j, OBJECT_MAPPER.writeValueAsString(embeddedMetadataCopy), Types.OTHER);
-                        }
-                    } else {
-                        for (; j < metadataColumns.size(); j++) {
-                            preparedStatement.setObject(j, null);
-                        }
-                    }
-                    preparedStatement.addBatch();
-
-                }
-                preparedStatement.executeBatch();
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException("Exception caught when processing JSON metadata", ex);
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Exception caught when inserting into vector store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
+            throw new RuntimeException(String.format("Exception caught when inserting into vector store table: \"%s\".\"%s\"",
+            schemaName, tableName), ex);
         }
     }
 
@@ -326,7 +243,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 metadataColumnNames += ", \"" + metadataJsonColumn + "\"";
                 totalColumns++;
             }
-            
+
             String placeholders = "?";
             for (int p = 1; p < totalColumns; p++) {
                 placeholders += ", ?";
