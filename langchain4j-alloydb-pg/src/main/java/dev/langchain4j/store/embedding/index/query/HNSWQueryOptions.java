@@ -8,7 +8,7 @@ public class HNSWQueryOptions implements QueryOptions {
     private final Integer efSearch;
 
     public HNSWQueryOptions(Builder builder) {
-        this.efSearch = builder.getEfSearch();
+        this.efSearch = builder.efSearch;
     }
 
     @Override
@@ -20,15 +20,7 @@ public class HNSWQueryOptions implements QueryOptions {
 
     public class Builder {
 
-        private Integer efSearch;
-
-        public Builder() {
-            efSearch = 40;
-        }
-
-        public Integer getEfSearch() {
-            return efSearch;
-        }
+        private Integer efSearch = 40;
 
         public Builder efSearch(Integer efSearch) {
             this.efSearch = efSearch;

@@ -8,7 +8,7 @@ public class IVFQueryOptions implements QueryOptions {
     private final Integer probes;
 
     public IVFQueryOptions(Builder builder) {
-        this.probes = builder.getProbes();
+        this.probes = builder.probes;
     }
 
     @Override
@@ -20,15 +20,7 @@ public class IVFQueryOptions implements QueryOptions {
 
     public class Builder {
 
-        private Integer probes;
-
-        public Builder() {
-            this.probes = 1;
-        }
-
-        public Integer getProbes() {
-            return probes;
-        }
+        private Integer probes = 1;
 
         public Builder probes(Integer probes) {
             this.probes = probes;

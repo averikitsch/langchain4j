@@ -1,22 +1,22 @@
 package dev.langchain4j.store.embedding.index;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class IVFIndex implements BaseIndex {
 
-    private final String indexType;
+    private final String indexType = "ivf";
+    private final String name;
     private final Integer listCount;
     private final String quantizer;
     private final DistanceStrategy distanceStrategy;
     private final List<String> partialIndexes;
 
     public IVFIndex(Builder builder) {
-        this.indexType = builder.getIndexType();
-        this.listCount = builder.getListCount();
-        this.quantizer = builder.getQuantizer();
-        this.distanceStrategy = builder.getDistanceStrategy();
-        this.partialIndexes = builder.getPartialIndexes();
+        this.name = builder.name;
+        this.listCount = builder.listCount;
+        this.quantizer = builder.quantizer;
+        this.distanceStrategy = builder.distanceStrategy;
+        this.partialIndexes = builder.partialIndexes;
     }
 
     @Override
@@ -36,6 +36,10 @@ public class IVFIndex implements BaseIndex {
         return indexType;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public Integer getListCount() {
         return listCount;
     }
@@ -46,31 +50,15 @@ public class IVFIndex implements BaseIndex {
 
     public class Builder {
 
-        private String indexType;
-        private Integer listCount;
-        private String quantizer;
-        private DistanceStrategy distanceStrategy;
+        private String name;
+        private Integer listCount = 100;
+        private String quantizer = "sq8";
+        private DistanceStrategy distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
         private List<String> partialIndexes;
 
-        public Builder() {
-            this.indexType = DEFAULT_INDEX_NAME_SUFFIX;
-            listCount = 100;
-            quantizer = "sq8";
-            distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
-            this.partialIndexes = new ArrayList<>();
-        }
-
-        public String getIndexType() {
-            return indexType;
-        }
-
-        public Builder indexType(String indexType) {
-            this.indexType = indexType;
+        public Builder name(String name) {
+            this.name = name;
             return this;
-        }
-
-        public Integer getListCount() {
-            return listCount;
         }
 
         public Builder listCount(Integer listCount) {
@@ -78,26 +66,14 @@ public class IVFIndex implements BaseIndex {
             return this;
         }
 
-        public String getQuantizer() {
-            return quantizer;
-        }
-
         public Builder quantizer(String quantizer) {
             this.quantizer = quantizer;
             return this;
         }
 
-        public DistanceStrategy getDistanceStrategy() {
-            return distanceStrategy;
-        }
-
         public Builder distanceStrategy(DistanceStrategy distanceStrategy) {
             this.distanceStrategy = distanceStrategy;
             return this;
-        }
-
-        public List<String> getPartialIndexes() {
-            return partialIndexes;
         }
 
         public Builder partialIndexes(List<String> partialIndexes) {
