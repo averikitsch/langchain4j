@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -14,9 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import static java.util.stream.Collectors.toList;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +33,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .enable(INDENT_OUTPUT);
-    private static final Logger log = LoggerFactory.getLogger(AlloyDBEmbeddingStore.class.getName());
     private final AlloyDBEngine engine;
     private final String tableName;
     private final String schemaName;
@@ -225,15 +222,14 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 metadataColumnNames = ", " + metadataColumnNames;
             }
 
+            if (isNotNullOrEmpty(metadataJsonColumn)) {
+                metadataColumnNames += ", \"" + metadataJsonColumn + "\"";
+                totalColumns++;
+            }
+            
             String placeholders = "?";
             for (int p = 1; p < totalColumns; p++) {
                 placeholders += ", ?";
-            }
-
-            if (isNotNullOrEmpty(metadataJsonColumn)) {
-                metadataColumnNames += ", \"" + metadataJsonColumn + "\"";
-                // add a placeholder with a cast to jsonb
-                placeholders += ", ?::jsonb";
             }
 
             String query = String.format("INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)", schemaName, tableName, idColumn, contentColumn, embeddingColumn, metadataColumnNames, placeholders);
@@ -260,7 +256,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                         }
                         if (isNotNullOrEmpty(metadataJsonColumn)) {
                             // metadataJsonColumn should be the last column left
-                            preparedStatement.setString(j, OBJECT_MAPPER.writeValueAsString(embeddedMetadataCopy));
+                            preparedStatement.setObject(j, OBJECT_MAPPER.writeValueAsString(embeddedMetadataCopy), Types.OTHER);
                         }
                     } else {
                         for (; j < metadataColumns.size(); j++) {
@@ -272,13 +268,11 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
                 preparedStatement.executeBatch();
             } catch (JsonProcessingException ex) {
-                log.error("Exception caught when processing JSON metadata", ex);
-                throw new RuntimeException(ex);
+                throw new RuntimeException("Exception caught when processing JSON metadata", ex);
             }
 
         } catch (SQLException ex) {
-            log.error("Exception caught when inserting into vector store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
-            throw new RuntimeException(ex);
+            throw new RuntimeException("Exception caught when inserting into vector store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
         }
     }
 
