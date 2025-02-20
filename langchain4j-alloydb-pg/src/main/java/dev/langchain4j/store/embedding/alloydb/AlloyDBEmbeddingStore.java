@@ -1,15 +1,25 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.engine.AlloyDBEngine;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.AlloyDBFilterMapper;
 
 public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
@@ -24,7 +34,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private String metadataJsonColumn;
     private List<String> ignoreMetadataColumns;
     // change to QueryOptions class when implemented
-    private List<String> queryOptions;
+    private QueryOptions queryOptions;
 
     /**
      * Constructor for AlloyDBEmbeddingStore
@@ -83,8 +93,45 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        List<String> columns = new ArrayList(metadataColumns);
+        columns.add(idColumn);
+        columns.add(contentColumn);
+        columns.add(embeddingColumn);
+        if (isNotNullOrBlank(metadataJsonColumn)) {
+            columns.add(metadataJsonColumn);
+        }
+
+        String columnNames = columns.stream().collect(Collectors.joining(", "));
+
+        String whereClause = String.format("WHERE %s", AlloyDBFilterMapper.generateWhereClause(request.filter()));
+
+        String vector = Arrays.toString(request.queryEmbedding().vector());
+
+        String query = String.format("SELECT %s, %s(%s, %s) as distance FROM \"%s\".\"%s\" %s ORDER BY %s %s %s LIMIT %d;",
+                columnNames, distanceStrategy.getSearchFunction(), embeddingColumn, vector, schemaName, tableName, whereClause,
+                embeddingColumn, distanceStrategy.getOperator(), vector, request.maxResults());
+
+        try (Connection conn = engine.getConnection()) {
+            List<ResultSet> resultList = new ArrayList<>();
+            List<EmbeddingMatch> embeddingMatches = new ArrayList<>();
+
+            try(Statement statement = conn.createStatement()) {
+            if (queryOptions != null) {
+                for (String option : queryOptions.getParameterSettings()) {
+                    // TODO put the result somewhere
+                    resultList.add(statement.executeQuery(String.format("SET LOCAL %s", option)));
+                }
+            }
+            ResultSet seachResult = statement.executeQuery(query);
+            
+        }
+
+        
+    } catch (SQLException ex) {
+        }
+
     }
 
     @Override
