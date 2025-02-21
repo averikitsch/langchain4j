@@ -105,7 +105,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         String columnNames = columns.stream().collect(Collectors.joining(", "));
 
-        String whereClause = String.format("WHERE %s", AlloyDBFilterMapper.generateWhereClause(request.filter()));
+        String whereClause = AlloyDBFilterMapper.generateWhereClause(request.filter());
 
         String vector = Arrays.toString(request.queryEmbedding().vector());
 
@@ -114,22 +114,23 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 embeddingColumn, distanceStrategy.getOperator(), vector, request.maxResults());
 
         try (Connection conn = engine.getConnection()) {
-            List<ResultSet> resultList = new ArrayList<>();
             List<EmbeddingMatch> embeddingMatches = new ArrayList<>();
 
-            try(Statement statement = conn.createStatement()) {
-            if (queryOptions != null) {
-                for (String option : queryOptions.getParameterSettings()) {
-                    // TODO put the result somewhere
-                    resultList.add(statement.executeQuery(String.format("SET LOCAL %s", option)));
+            try (Statement statement = conn.createStatement()) {
+                if (queryOptions != null) {
+                    for (String option : queryOptions.getParameterSettings()) {
+                        statement.executeQuery(String.format("SET LOCAL %s;", option));
+                    }
                 }
-            }
-            ResultSet seachResult = statement.executeQuery(query);
-            
-        }
+                ResultSet resultSet = statement.executeQuery(query);
+                double distance = resultSet.getDouble("distance");
+                String embeddingId = resultSet.getString(idColumn);
+                //Embedding embedding = ;
 
-        
-    } catch (SQLException ex) {
+                embeddingMatches.add(new EmbeddingMatch<TextSegment>());
+            }
+
+        } catch (SQLException ex) {
         }
 
     }
