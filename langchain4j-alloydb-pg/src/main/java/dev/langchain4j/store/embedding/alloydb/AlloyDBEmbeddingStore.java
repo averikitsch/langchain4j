@@ -214,7 +214,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Exception caught when inserting into vector store table: \"%s\".\"%s\"",
-            schemaName, tableName), ex);
+                    schemaName, tableName), ex);
         }
     }
 
@@ -305,8 +305,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         private String metadataJsonColumn = "langchain_metadata";
         private List<String> ignoreMetadataColumnNames = new ArrayList<>();
         private DistanceStrategy distanceStrategy = distanceStrategy.COSINE_DISTANCE;
-        private Integer k= 4;
-        private Integer fetchK= 20;
+        private Integer k = 4;
+        private Integer fetchK = 20;
         private Double lambdaMult = 0.5;
         // change to QueryOptions class when implemented
         private List<String> queryOptions;
@@ -316,7 +316,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             this.tableName = tableName;
         }
 
-       /**
+        /**
          * @param schemaName (Default: "public") The schema name
          */
         public Builder schemaName(String schemaName) {
