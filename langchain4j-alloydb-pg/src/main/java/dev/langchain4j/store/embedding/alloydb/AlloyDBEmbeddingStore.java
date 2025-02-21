@@ -106,7 +106,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         Map<String, String> allColumns = new HashMap();
 
-        try (ResultSet resultSet = engine.getConnection().createStatement().executeQuery(query)) {
+        try (Connction conn = engine.getConnection(); ResultSet resultSet = conn.createStatement().executeQuery(query)) {
             ResultSetMetaData rsMeta = resultSet.getMetaData();
             int columnCount = rsMeta.getColumnCount();
             for (int i = 1; i <= columnCount; i++) {
