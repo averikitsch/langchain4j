@@ -150,8 +150,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     allColumnsCopy.remove(ignore);
                 }
 
-                metadataColumns.addAll((allColumnsCopy.entrySet().stream()
-                        .map(e -> e.getKey()).collect(Collectors.toList())));
+                metadataColumns.addAll(allColumnsCopy.keySet());
             }
 
         } catch (SQLException ex) {
