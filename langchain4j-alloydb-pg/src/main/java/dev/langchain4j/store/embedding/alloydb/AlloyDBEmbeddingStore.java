@@ -79,22 +79,22 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      * parameters
      */
     public AlloyDBEmbeddingStore(Builder builder) {
-        this.engine = builder.getEngine();
-        this.tableName = builder.getTableName();
-        this.schemaName = builder.getSchemaName();
-        this.contentColumn = builder.getContentColumn();
-        this.embeddingColumn = builder.getEmbeddingColumn();
-        this.idColumn = builder.getIdColumn();
-        this.metadataJsonColumn = builder.getMetadataJsonColumn();
-        this.metadataColumns = builder.getMetadataColumns();
-        this.distanceStrategy = builder.getDistanceStrategy();
-        this.k = builder.getK();
-        this.fetchK = builder.getFetchK();
-        this.lambdaMult = builder.getLambdaMult();
-        this.queryOptions = builder.getQueryOptions();
+        this.engine = builder.engine;
+        this.tableName = builder.tableName;
+        this.schemaName = builder.schemaName;
+        this.contentColumn = builder.contentColumn;
+        this.embeddingColumn = builder.embeddingColumn;
+        this.idColumn = builder.idColumn;
+        this.metadataJsonColumn = builder.metadataJsonColumn;
+        this.metadataColumns = builder.metadataColumns;
+        this.distanceStrategy = builder.distanceStrategy;
+        this.k = builder.k;
+        this.fetchK = builder.fetchK;
+        this.lambdaMult = builder.lambdaMult;
+        this.queryOptions = builder.queryOptions;
 
         // check columns exist in the table
-        verifyEmbeddingStoreColumns(builder.getIgnoreMetadataColumnNames());
+        verifyEmbeddingStoreColumns(builder.ignoreMetadataColumnNames);
     }
 
     private void verifyEmbeddingStoreColumns(List<String> ignoredColumns) {
@@ -293,96 +293,30 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    public static class Builder {
+    public class Builder {
 
+        private AlloyDBEngine engine;
         private String tableName;
-        private String schemaName;
-        private String contentColumn;
-        private String embeddingColumn;
-        private String idColumn;
-        private List<String> metadataColumns;
-        private String metadataJsonColumn;
-        private List<String> ignoreMetadataColumnNames;
-        private DistanceStrategy distanceStrategy;
-        private Integer k;
-        private Integer fetchK;
-        private Double lambdaMult;
+        private String schemaName = "public";
+        private String contentColumn = "content";
+        private String embeddingColumn = "embedding";
+        private String idColumn = "langchain_id";
+        private List<String> metadataColumns = new ArrayList<>();
+        private String metadataJsonColumn = "langchain_metadata";
+        private List<String> ignoreMetadataColumnNames = new ArrayList<>();
+        private DistanceStrategy distanceStrategy = distanceStrategy.COSINE_DISTANCE;
+        private Integer k= 4;
+        private Integer fetchK= 20;
+        private Double lambdaMult = 0.5;
         // change to QueryOptions class when implemented
         private List<String> queryOptions;
-        private AlloyDBEngine engine;
 
         public Builder(AlloyDBEngine engine, String tableName) {
             this.engine = engine;
-            this.contentColumn = tableName;
-            this.schemaName = "public";
-            this.embeddingColumn = "embedding";
-            this.idColumn = "langchain_id";
-            this.metadataJsonColumn = "langchain_metadata";
-            this.metadataColumns = new ArrayList<>();
-            this.ignoreMetadataColumnNames = new ArrayList();
-            this.distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
-            this.k = 4;
-            this.fetchK = 20;
-            this.lambdaMult = 0.5;
+            this.tableName = tableName;
         }
 
-        public AlloyDBEngine getEngine() {
-            return this.engine;
-        }
-
-        public String getTableName() {
-            return this.tableName;
-        }
-
-        public String getSchemaName() {
-            return this.schemaName;
-        }
-
-        public String getContentColumn() {
-            return this.contentColumn;
-        }
-
-        public String getEmbeddingColumn() {
-            return this.embeddingColumn;
-        }
-
-        public String getIdColumn() {
-            return this.idColumn;
-        }
-
-        public List<String> getMetadataColumns() {
-            return this.metadataColumns;
-        }
-
-        public DistanceStrategy getDistanceStrategy() {
-            return this.distanceStrategy;
-        }
-
-        public Integer getK() {
-            return this.k;
-        }
-
-        public Integer getFetchK() {
-            return this.fetchK;
-        }
-
-        public Double getLambdaMult() {
-            return this.lambdaMult;
-        }
-
-        public List<String> getQueryOptions() {
-            return this.queryOptions;
-        }
-
-        public String getMetadataJsonColumn() {
-            return this.metadataJsonColumn;
-        }
-
-        public List<String> getIgnoreMetadataColumnNames() {
-            return this.ignoreMetadataColumnNames;
-        }
-
-        /**
+       /**
          * @param schemaName (Default: "public") The schema name
          */
         public Builder schemaName(String schemaName) {
