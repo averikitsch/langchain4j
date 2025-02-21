@@ -102,7 +102,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new IllegalArgumentException("Cannot use both metadataColumns and ignoreMetadataColumns at the same time.");
         }
 
-        String query = "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \"" + tableName + "\" AND table_schema = \"" + schemaName + "\"";
+        String query = String.format("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \"%s\" AND table_schema = \"%s\"", tableName, schemaName);
 
         Map<String, String> allColumns = new HashMap();
 
