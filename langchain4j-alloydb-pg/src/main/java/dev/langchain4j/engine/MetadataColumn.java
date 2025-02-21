@@ -16,4 +16,8 @@ public class MetadataColumn {
         return String.format("\"%s\" %s %s", name, type, nullable ? "" : "NOT NULL");
     }
 
+    public String getName() {
+        return name;
+    }
+
 }
