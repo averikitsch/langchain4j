@@ -22,10 +22,6 @@ public class IVFFlatIndex implements BaseIndex {
         return String.format("(lists = %s)", listCount);
     }
 
-    public Integer getListCount() {
-        return listCount;
-    }
-
     public DistanceStrategy getDistanceStrategy() {
         return distanceStrategy;
     }
