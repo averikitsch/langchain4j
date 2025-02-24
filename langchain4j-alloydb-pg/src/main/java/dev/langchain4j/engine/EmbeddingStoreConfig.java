@@ -4,7 +4,6 @@ import java.util.List;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import dev.langchain4j.engine.MetadataColumn;
 
 public class EmbeddingStoreConfig {
 

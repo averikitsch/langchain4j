@@ -6,10 +6,18 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.engine.PostgresEngine;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.*;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
 
+  private static final Logger log = LoggerFactory.getLogger(PostgresEmbeddingStore.class.getName());
   private final PostgresEngine engine;
   private final String tableName;
   private String schemaName;
@@ -114,6 +122,31 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
   @Override
   public void add(String id, Embedding embedding) {
     // to be implemented
+  }
+
+  @Override
+  public void removeAll(Collection<String> ids) {
+    if (ids == null || ids.isEmpty()) {
+      throw new IllegalArgumentException("ids must not be null or empty");
+    }
+
+    String query =
+        String.format("DELETE FROM \"%s\".\"%s\" WHERE %s IN (?)", schemaName, tableName, idColumn);
+
+    try (Connection conn = engine.getConnection()) {
+      try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+        Array array = conn.createArrayOf("uuid", ids.stream().map(UUID::fromString).toArray());
+        preparedStatement.setArray(1, array);
+        preparedStatement.executeUpdate();
+      }
+    } catch (SQLException ex) {
+      log.error(
+          String.format(
+              "Exception caught when inserting into vector store table: \"%s\".\"%s\"",
+              schemaName, tableName),
+          ex);
+      throw new RuntimeException(ex);
+    }
   }
 
   public static class Builder {

@@ -1,16 +1,16 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import java.sql.Array;
 import java.sql.Connection;
-import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import static java.util.Collections.singletonList;
 import java.util.List;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -24,7 +24,7 @@ import dev.langchain4j.store.embedding.filter.AlloyDBFilterMapper;
 
 public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
-    private static final Logger log = Logger.getLogger(AlloyDBEmbeddingStore.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(AlloyDBEmbeddingStore.class.getName());
     private final AlloyDBEngine engine;
     private final String tableName;
     private String schemaName;
@@ -140,7 +140,24 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void removeAll(Collection<String> ids) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (ids == null || ids.isEmpty()) {
+            throw new IllegalArgumentException("ids must not be null or empty");
+        }
+
+        String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s IN (?)", schemaName, tableName, idColumn);
+
+        try (Connection conn = engine.getConnection()) {
+            try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+                Array array = conn.createArrayOf("uuid", ids.stream().map(UUID::fromString).toArray());
+                preparedStatement.setArray(1, array);
+                preparedStatement.executeUpdate();
+            }
+        } catch (SQLException ex) {
+            log.error(String.format("Exception caught when inserting into vector store table: \"%s\".\"%s\"",
+                    schemaName, tableName), ex);
+            throw new RuntimeException(ex);
+        }
+
     }
 
     public static class Builder {
