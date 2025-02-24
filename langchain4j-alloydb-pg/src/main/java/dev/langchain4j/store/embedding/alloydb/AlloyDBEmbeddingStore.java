@@ -6,9 +6,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Types;
-import java.util.ArrayList;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,14 +27,15 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.engine.AlloyDBEngine;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.AlloyDBFilterMapper;
+import dev.langchain4j.store.embedding.index.DistanceStrategy;
 import dev.langchain4j.store.embedding.index.query.QueryOptions;
 
 public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
@@ -53,8 +53,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final Integer k;
     private final Integer fetchK;
     private final Double lambdaMult;
-    private String metadataJsonColumn;
     private final QueryOptions queryOptions;
+    private String metadataJsonColumn;
 
     /**
      * Constructor for AlloyDBEmbeddingStore
@@ -348,12 +348,11 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         private List<String> metadataColumns = new ArrayList<>();
         private String metadataJsonColumn = "langchain_metadata";
         private List<String> ignoreMetadataColumnNames = new ArrayList<>();
-        private DistanceStrategy distanceStrategy = distanceStrategy.COSINE_DISTANCE;
+        private DistanceStrategy distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
         private Integer k = 4;
         private Integer fetchK = 20;
         private Double lambdaMult = 0.5;
-        // change to QueryOptions class when implemented
-        private List<String> queryOptions;
+        private QueryOptions queryOptions;
 
         public Builder(AlloyDBEngine engine, String tableName) {
             this.engine = engine;
@@ -462,7 +461,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
          * @param queryOptions (Optional) QueryOptions class with vector search
          * parameters
          */
-        public Builder queryOptions(List<String> queryOptions) {
+        public Builder queryOptions(QueryOptions queryOptions) {
             this.queryOptions = queryOptions;
             return this;
         }
