@@ -3,11 +3,15 @@ package dev.langchain4j.store.embedding.alloydb;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import static java.util.Collections.singletonList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +25,7 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.AlloyDBFilterMapper;
+import dev.langchain4j.store.embedding.index.query.QueryOptions;
 
 public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
@@ -34,7 +39,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private List<String> metadataColumns;
     private String metadataJsonColumn;
     private List<String> ignoreMetadataColumns;
-    // change to QueryOptions class when implemented
     private QueryOptions queryOptions;
 
     /**
@@ -57,7 +61,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param queryOptions (Optional) QueryOptions class with vector search
      * parameters
      */
-    public AlloyDBEmbeddingStore(AlloyDBEngine engine, String tableName, String schemaName, String contentColumn, String embeddingColumn, String idColumn, List<String> metadataColumns, String metadataJsonColumn, List<String> ignoreMetadataColumns, List<String> queryOptions) {
+    public AlloyDBEmbeddingStore(AlloyDBEngine engine, String tableName, String schemaName, String contentColumn, String embeddingColumn, String idColumn, List<String> metadataColumns, String metadataJsonColumn, List<String> ignoreMetadataColumns, QueryOptions queryOptions) {
         this.engine = engine;
         this.tableName = tableName;
         this.schemaName = schemaName;
