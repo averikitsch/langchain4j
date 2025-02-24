@@ -5,7 +5,7 @@ public class AlloyDBFilterMapper {
         // TODO Auto-generated method stub
     }
 
-    public static String generateWhereClause(Filter filter){
+    public static String map(Filter filter){
         return "not implemented yet";
     }
 }

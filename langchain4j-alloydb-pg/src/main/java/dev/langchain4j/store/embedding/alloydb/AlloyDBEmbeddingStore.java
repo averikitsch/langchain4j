@@ -210,7 +210,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         String columnNames = columns.stream().collect(Collectors.joining(", "));
 
-        String whereClause = AlloyDBFilterMapper.generateWhereClause(request.filter());
+        String whereClause = String.format("WHERE %s", AlloyDBFilterMapper.map(request.filter()));
 
         String vector = Arrays.toString(request.queryEmbedding().vector());
 
