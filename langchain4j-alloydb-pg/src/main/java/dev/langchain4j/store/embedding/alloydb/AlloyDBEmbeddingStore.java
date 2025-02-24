@@ -7,6 +7,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import static java.util.Collections.singletonList;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -112,9 +113,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         String query = String.format("SELECT %s, %s(%s, %s) as distance FROM \"%s\".\"%s\" %s ORDER BY %s %s %s LIMIT %d;",
                 columnNames, distanceStrategy.getSearchFunction(), embeddingColumn, vector, schemaName, tableName, whereClause,
                 embeddingColumn, distanceStrategy.getOperator(), vector, request.maxResults());
-
+        List<EmbeddingMatch<TextSegment>> embeddingMatches = new ArrayList<>();
         try (Connection conn = engine.getConnection()) {
-            List<EmbeddingMatch> embeddingMatches = new ArrayList<>();
 
             try (Statement statement = conn.createStatement()) {
                 if (queryOptions != null) {
@@ -125,13 +125,16 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 ResultSet resultSet = statement.executeQuery(query);
                 double distance = resultSet.getDouble("distance");
                 String embeddingId = resultSet.getString(idColumn);
-                //Embedding embedding = ;
+                Embedding embedding = resultSet.getObject(embeddingColumn, Embedding.class);
+                TextSegment embedded = resultSet.getObject(contentColumn, TextSegment.class);
 
-                embeddingMatches.add(new EmbeddingMatch<TextSegment>());
+                embeddingMatches.add(new EmbeddingMatch<>(distance, embeddingId, embedding, embedded));
             }
 
         } catch (SQLException ex) {
+            throw new RuntimeException("Exception caught when searching in store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
         }
+        return new EmbeddingSearchResult<>(embeddingMatches);
 
     }
 
