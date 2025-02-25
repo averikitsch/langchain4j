@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.engine.AlloyDBEngine;
@@ -208,11 +209,11 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             columns.add(metadataJsonColumn);
         }
 
-        String columnNames = columns.stream().collect(Collectors.joining(", "));
+        String columnNames = columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
 
         String filterString = AlloyDBFilterMapper.map(request.filter());
 
-        String whereClause = isNotNullOrBlank(filterString) ? String.format("WHERE %s", AlloyDBFilterMapper.map(request.filter())) : "";
+        String whereClause = isNotNullOrBlank(filterString) ? String.format("WHERE %s", filterString) : "";
 
         String vector = String.format("'%s'", Arrays.toString(request.queryEmbedding().vector()));
 
@@ -233,8 +234,28 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 while (resultSet.next()) {
                     double distance = resultSet.getDouble("distance");
                     String embeddingId = resultSet.getString(idColumn);
-                    Embedding embedding = resultSet.getObject(embeddingColumn, Embedding.class);
-                    TextSegment embedded = resultSet.getObject(contentColumn, TextSegment.class);
+
+                    String[] stringVector = resultSet.getString(embeddingColumn).replaceAll("[\\[\\]\\s]", "").split(",");
+                    float[] floatVector = new float[stringVector.length];
+                    for(int i = 0; i < floatVector.length; i++) {
+                        floatVector[i] = Float.parseFloat(stringVector[i]);
+                    }
+                    Embedding embedding = Embedding.from(floatVector);
+
+                    String embeddedText = resultSet.getString(contentColumn);
+                    Map<String, Object> metadataMap = new HashMap<>();
+
+                    for(String metaColumn : metadataColumns) {
+                        metadataMap.put(metaColumn, resultSet.getObject(metaColumn));
+                    }
+
+                    if(isNotNullOrBlank(metadataJsonColumn)) {
+                        metadataMap.put(metadataJsonColumn, resultSet.getObject(metadataJsonColumn));
+                    }
+                    
+                    Metadata metadata = Metadata.from(metadataMap);
+
+                    TextSegment embedded = new TextSegment(embeddedText, metadata);
 
                     embeddingMatches.add(new EmbeddingMatch<>(distance, embeddingId, embedding, embedded));
                 }
@@ -309,7 +330,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     Map<String, Object> embeddedMetadataCopy = textSegment.metadata().toMap().entrySet().stream()
                             .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
                     preparedStatement.setString(1, id);
-                    preparedStatement.setObject(2, embedding);
+                    preparedStatement.setString(2, Arrays.toString(embedding.vector()));
                     preparedStatement.setString(3, text);
                     int j = 4;
                     if (embeddedMetadataCopy != null && !embeddedMetadataCopy.isEmpty()) {
