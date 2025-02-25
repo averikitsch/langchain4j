@@ -210,16 +210,19 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         String columnNames = columns.stream().collect(Collectors.joining(", "));
 
-        String whereClause = String.format("WHERE %s", AlloyDBFilterMapper.map(request.filter()));
+        String filterString = AlloyDBFilterMapper.map(request.filter());
 
-        String vector = Arrays.toString(request.queryEmbedding().vector());
+        String whereClause = isNotNullOrBlank(filterString) ? String.format("WHERE %s", AlloyDBFilterMapper.map(request.filter())) : "";
+
+        String vector = String.format("'%s'", Arrays.toString(request.queryEmbedding().vector()));
 
         String query = String.format("SELECT %s, %s(%s, %s) as distance FROM \"%s\".\"%s\" %s ORDER BY %s %s %s LIMIT %d;",
                 columnNames, distanceStrategy.getSearchFunction(), embeddingColumn, vector, schemaName, tableName, whereClause,
                 embeddingColumn, distanceStrategy.getOperator(), vector, request.maxResults());
+                
         List<EmbeddingMatch<TextSegment>> embeddingMatches = new ArrayList<>();
-        try (Connection conn = engine.getConnection()) {
 
+        try (Connection conn = engine.getConnection()) {
             try (Statement statement = conn.createStatement()) {
                 if (queryOptions != null) {
                     for (String option : queryOptions.getParameterSettings()) {
@@ -227,12 +230,14 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     }
                 }
                 ResultSet resultSet = statement.executeQuery(query);
-                double distance = resultSet.getDouble("distance");
-                String embeddingId = resultSet.getString(idColumn);
-                Embedding embedding = resultSet.getObject(embeddingColumn, Embedding.class);
-                TextSegment embedded = resultSet.getObject(contentColumn, TextSegment.class);
+                while (resultSet.next()) {
+                    double distance = resultSet.getDouble("distance");
+                    String embeddingId = resultSet.getString(idColumn);
+                    Embedding embedding = resultSet.getObject(embeddingColumn, Embedding.class);
+                    TextSegment embedded = resultSet.getObject(contentColumn, TextSegment.class);
 
-                embeddingMatches.add(new EmbeddingMatch<>(distance, embeddingId, embedding, embedded));
+                    embeddingMatches.add(new EmbeddingMatch<>(distance, embeddingId, embedding, embedded));
+                }
             }
 
         } catch (SQLException ex) {
