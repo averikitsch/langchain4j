@@ -1,8 +1,6 @@
 package dev.langchain4j.store.embedding.filter;
 
 import dev.langchain4j.store.embedding.filter.Filter;
-
-import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.*;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
