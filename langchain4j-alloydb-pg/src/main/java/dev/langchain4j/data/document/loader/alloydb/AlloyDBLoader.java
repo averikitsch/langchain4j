@@ -29,36 +29,34 @@ import dev.langchain4j.engine.AlloyDBEngine;
  */
 public class AlloyDBLoader {
 
+    private final AlloyDBEngine engine;
     private final String query;
     private final List<String> contentColumns;
     private final List<String> metadataColumns;
     private final BiFunction<Map<String, Object>, List<String>, String> formatter;
     private final String metadataJsonColumn;
-    private final Connection connection;
+    //private final Connection connection;
     private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
     private static final String DEFAULT_METADATA_COL = "langchain_metadata";
 
-    private AlloyDBLoader(Connection connection, String query,
-            BiFunction<Map<String, Object>, List<String>, String> formatter, List<String> contentColumns,
-            List<String> metadataColumns, String metadataJsonColumn) {
-        this.connection = connection;
-        this.query = query;
-        this.formatter = formatter;
-        this.contentColumns = contentColumns;
-        this.metadataColumns = metadataColumns;
-        this.metadataJsonColumn = metadataJsonColumn;
+    private AlloyDBLoader(Builder builder) {
+        this.engine = builder.engine;
+        this.query = builder.query;
+        this.formatter = builder.formatter;
+        this.contentColumns = builder.contentColumns;
+        this.metadataColumns = builder.metadataColumns;
+        this.metadataJsonColumn = builder.metadataJsonColumn;
     }
 
     public static class Builder {
 
         private final AlloyDBEngine engine;
-        private Connection connection;
         private String tableName;
         private String query;
         private String metadataJsonColumn;
         private String schemaName = "public";
-        private List<String> contentColumns = new ArrayList<>();
-        private List<String> metadataColumns = new ArrayList<>();
+        private List<String> contentColumns;
+        private List<String> metadataColumns;
         private String format;
         private BiFunction<Map<String, Object>, List<String>, String> formatter;
 
@@ -82,33 +80,12 @@ public class AlloyDBLoader {
         }
 
         public Builder formatter(BiFunction<Map<String, Object>, List<String>, String> formatter) {
-            if (this.format != null && formatter != null) {
-                throw new IllegalArgumentException("Only one of 'format' or 'formatter' should be specified.");
-            }
             this.formatter = formatter;
             return this;
         }
 
         public Builder format(String format) {
-            if (format != null && this.formatter != null) {
-                throw new IllegalArgumentException("Only one of 'format' or 'formatter' should be specified.");
-            }
-            switch (format) {
-                case "csv":
-                    this.formatter = AlloyDBLoader::csvFormatter;
-                    break;
-                case "text":
-                    this.formatter = AlloyDBLoader::textFormatter;
-                    break;
-                case "JSON":
-                    this.formatter = AlloyDBLoader::jsonFormatter;
-                    break;
-                case "YAML":
-                    this.formatter = AlloyDBLoader::yamlFormatter;
-                    break;
-                default:
-                    this.formatter = AlloyDBLoader::textFormatter;
-            }
+            this.format = format;
             return this;
         }
 
@@ -132,24 +109,45 @@ public class AlloyDBLoader {
                 throw new IllegalArgumentException("Either query or tableName must be specified.");
             }
             if (query == null) {
-                query = String.format("SELECT * FROM \"%s\".\"%s\" LIMIT 1", schemaName, tableName);
+                query = String.format("SELECT * FROM \"%s\".\"%s\"", schemaName, tableName);
+            }
+
+            if (format != null && formatter != null) {
+                throw new IllegalArgumentException("Only one of 'format' or 'formatter' should be specified.");
+            }
+
+            if (format == null && formatter == null) {
+                this.formatter = AlloyDBLoader::textFormatter;
+            }
+
+            switch (format) {
+                case "csv":
+                    this.formatter = AlloyDBLoader::csvFormatter;
+                    break;
+                case "text":
+                    this.formatter = AlloyDBLoader::textFormatter;
+                    break;
+                case "JSON":
+                    this.formatter = AlloyDBLoader::jsonFormatter;
+                    break;
+                case "YAML":
+                    this.formatter = AlloyDBLoader::yamlFormatter;
+                    break;
+                default:
+                    throw new IllegalArgumentException("format must be type: 'csv', 'text', 'JSON', 'YAML'");
             }
 
             List<String> columnNames = new ArrayList<>();
-            try (Connection pool = engine.getConnection(); PreparedStatement statement = pool.prepareStatement(query); ResultSet resultSet = statement.executeQuery()) {
-                this.connection = pool;
+            try (Connection pool = engine.getConnection(); PreparedStatement statement = pool.prepareStatement(query)) {
+                statement.setMaxRows(1);
+                ResultSet resultSet = statement.executeQuery();
                 for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
                     columnNames.add(resultSet.getMetaData().getColumnName(i));
                 }
             }
 
             contentColumns = contentColumns == null || contentColumns.isEmpty() ? List.of(columnNames.get(0)) : contentColumns;
-            metadataColumns = metadataColumns == null ? new ArrayList<>() : metadataColumns;
-            for (String col : columnNames) {
-                if (!contentColumns.contains(col) && !metadataColumns.contains(col)) {
-                    metadataColumns.add(col);
-                }
-            }
+            metadataColumns = metadataColumns == null || metadataColumns.isEmpty() ? columnNames.stream().filter(col -> !contentColumns.contains(col)).toList() : metadataColumns;
 
             if (metadataJsonColumn != null && !columnNames.contains(metadataJsonColumn)) {
                 throw new IllegalArgumentException(String.format("Column %s not found in query result %s.", metadataJsonColumn, columnNames));
@@ -167,7 +165,7 @@ public class AlloyDBLoader {
                     throw new IllegalArgumentException(String.format("Column %s not found in query result %s.", name, columnNames));
                 }
             }
-            return new AlloyDBLoader(connection, query, formatter, contentColumns, metadataColumns, metadataJsonColumn);
+            return new AlloyDBLoader(this);
         }
     }
 
@@ -219,7 +217,7 @@ public class AlloyDBLoader {
      */
     public List<Document> load() throws SQLException {
         List<Document> documents = new ArrayList<>();
-        PreparedStatement statement = connection.prepareStatement(query);
+        PreparedStatement statement = engine.getConnection().prepareStatement(query);
         ResultSet resultSet = statement.executeQuery();
 
         while (resultSet.next()) {
