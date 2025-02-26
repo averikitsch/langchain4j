@@ -35,7 +35,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.store.embedding.filter.AlloyDBFilterMapper;
+import dev.langchain4j.store.embedding.filter.AlloyDBFilterMapper;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
 import dev.langchain4j.store.embedding.index.query.QueryOptions;
 
@@ -43,6 +43,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .enable(INDENT_OUTPUT);
+    private final AlloyDBFilterMapper FILTER_MAPPER = new AlloyDBFilterMapper();
     private final AlloyDBEngine engine;
     private final String tableName;
     private final String schemaName;
@@ -211,7 +212,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         String columnNames = columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
 
-        String filterString = AlloyDBFilterMapper.map(request.filter());
+        String filterString = FILTER_MAPPER.map(request.filter());
 
         String whereClause = isNotNullOrBlank(filterString) ? String.format("WHERE %s", filterString) : "";
 
