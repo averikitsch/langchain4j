@@ -92,7 +92,7 @@ public class AlloyDBFilterMapper {
     }
 
     private String mapContainsString(ContainsString containsString) {
-        return String.format("\"%s\" LIKE '%s%%'", containsString.key(), formatValue(containsString.comparisonValue()));
+        return String.format("\"%s\" ILIKE '%%%s%%'", containsString.key(), formatValue(containsString.comparisonValue()));
     }
 
     private String mapAnd(And and) {
