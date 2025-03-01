@@ -30,7 +30,7 @@ public class AlloyDBLoader {
     private final String query;
     private final List<String> contentColumns;
     private final List<String> metadataColumns;
-    private final BiFunction<Map<String, String>, List<String>, String> formatter;
+    private final BiFunction<Map<String, Object>, List<String>, String> formatter;
     private final String metadataJsonColumn;
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String DEFAULT_METADATA_COL = "langchain_metadata";
@@ -54,7 +54,7 @@ public class AlloyDBLoader {
         private List<String> contentColumns;
         private List<String> metadataColumns;
         private String format;
-        private BiFunction<Map<String, String>, List<String>, String> formatter;
+        private BiFunction<Map<String, Object>, List<String>, String> formatter;
 
         public Builder(AlloyDBEngine engine) {
             this.engine = engine;
@@ -75,7 +75,7 @@ public class AlloyDBLoader {
             return this;
         }
 
-        public Builder formatter(BiFunction<Map<String, String>, List<String>, String> formatter) {
+        public Builder formatter(BiFunction<Map<String, Object>, List<String>, String> formatter) {
             this.formatter = formatter;
             return this;
         }
@@ -165,7 +165,7 @@ public class AlloyDBLoader {
         }
     }
 
-    private static String textFormatter(Map<String, String> row, List<String> contentColumns) {
+    private static String textFormatter(Map<String, Object> row, List<String> contentColumns) {
         StringBuilder sb = new StringBuilder();
         for (String column : contentColumns) {
             if (row.containsKey(column)) {
@@ -175,7 +175,7 @@ public class AlloyDBLoader {
         return sb.toString().trim();
     }
 
-    private static String csvFormatter(Map<String, String> row, List<String> contentColumns) {
+    private static String csvFormatter(Map<String, Object> row, List<String> contentColumns) {
         StringBuilder sb = new StringBuilder();
         for (String column : contentColumns) {
             if (row.containsKey(column)) {
@@ -185,7 +185,7 @@ public class AlloyDBLoader {
         return sb.toString().trim().replaceAll(", $", ""); // Remove trailing comma
     }
 
-    private static String yamlFormatter(Map<String, String> row, List<String> contentColumns) {
+    private static String yamlFormatter(Map<String, Object> row, List<String> contentColumns) {
         StringBuilder sb = new StringBuilder();
         for (String column : contentColumns) {
             if (row.containsKey(column)) {
@@ -195,11 +195,11 @@ public class AlloyDBLoader {
         return sb.toString().trim();
     }
 
-    private static String jsonFormatter(Map<String, String> row, List<String> contentColumns) {
+    private static String jsonFormatter(Map<String, Object> row, List<String> contentColumns) {
         ObjectNode json = objectMapper.createObjectNode();
         for (String column : contentColumns) {
             if (row.containsKey(column)) {
-                json.put(column, row.get(column));
+                json.put(column, (String) row.get(column));
             }
         }
         return json.toString();
@@ -216,15 +216,15 @@ public class AlloyDBLoader {
         try (Connection pool = engine.getConnection(); PreparedStatement statement = pool.prepareStatement(query)) {
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                Map<String, String> rowData = new HashMap<>();
+                Map<String, Object> rowData = new HashMap<>();
                 for (String column : contentColumns) {
                     rowData.put(column, resultSet.getString(column));
                 }
                 for (String column : metadataColumns) {
-                    rowData.put(column, resultSet.getString(column));
+                    rowData.put(column, resultSet.getObject(column));
                 }
                 if (metadataJsonColumn != null) {
-                    rowData.put(metadataJsonColumn, resultSet.getString(metadataJsonColumn));
+                    rowData.put(metadataJsonColumn, resultSet.getObject(metadataJsonColumn));
                 }
                 Document doc = parseDocFromRow(rowData);
                 documents.add(doc);
@@ -233,13 +233,13 @@ public class AlloyDBLoader {
         return documents;
     }
 
-    private Document parseDocFromRow(Map<String, String> row) {
+    private Document parseDocFromRow(Map<String, Object> row) {
         String pageContent = formatter.apply(row, contentColumns);
         Metadata metadata = new Metadata();
 
         if (metadataJsonColumn != null && row.containsKey(metadataJsonColumn)) {
             try {
-                metadata = Metadata.from(objectMapper.readValue(row.get(metadataJsonColumn), Map.class));
+                metadata = Metadata.from(objectMapper.readValue(row.get(metadataJsonColumn).toString(), Map.class));
             } catch (JsonProcessingException e) {
                 throw new RuntimeException("Failed to parse JSON: " + e.getMessage()
                         + ". Ensure metadata JSON structure matches the expected format.", e);
@@ -248,7 +248,7 @@ public class AlloyDBLoader {
 
         for (String column : metadataColumns) {
             if (row.containsKey(column) && !column.equals(metadataJsonColumn)) {
-                metadata.put(column, row.get(column));
+                metadata.put(column, row.get(column).toString());
             }
         }
 
