@@ -235,11 +235,10 @@ public class AlloyDBLoader {
 
     private Document parseDocFromRow(Map<String, Object> row) {
         String pageContent = formatter.apply(row, contentColumns);
-        Metadata metadata = new Metadata();
-
+        Map<String, Object> metaDataMap = new HashMap<>();
         if (metadataJsonColumn != null && row.containsKey(metadataJsonColumn)) {
             try {
-                metadata = Metadata.from(objectMapper.readValue(row.get(metadataJsonColumn).toString(), Map.class));
+                metaDataMap.putAll(objectMapper.readValue(row.get(metadataJsonColumn).toString(), Map.class));
             } catch (JsonProcessingException e) {
                 throw new RuntimeException("Failed to parse JSON: " + e.getMessage()
                         + ". Ensure metadata JSON structure matches the expected format.", e);
@@ -248,10 +247,10 @@ public class AlloyDBLoader {
 
         for (String column : metadataColumns) {
             if (row.containsKey(column) && !column.equals(metadataJsonColumn)) {
-                metadata.put(column, row.get(column).toString());
+                metaDataMap.put(column, row.get(column));
             }
         }
-
+        Metadata metadata = Metadata.from(metaDataMap);
         return new Document(pageContent, metadata);
     }
 }
