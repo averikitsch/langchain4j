@@ -4,7 +4,6 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -100,15 +99,16 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new IllegalArgumentException("Cannot use both metadataColumns and ignoreMetadataColumns at the same time.");
         }
 
-        String query = String.format("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \"%s\" AND table_schema = \"%s\"", tableName, schemaName);
+        String query = String.format("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '%s' AND table_schema = '%s'", tableName, schemaName);
 
         Map<String, String> allColumns = new HashMap();
 
-        try (Connection conn = engine.getConnection(); ResultSet resultSet = conn.createStatement().executeQuery(query)) {
-            ResultSetMetaData rsMeta = resultSet.getMetaData();
-            int columnCount = rsMeta.getColumnCount();
-            for (int i = 1; i <= columnCount; i++) {
-                allColumns.put(rsMeta.getColumnName(i), rsMeta.getColumnTypeName(i));
+        try (Connection conn = engine.getConnection(); ) {
+
+            ResultSet resultSet = conn.createStatement().executeQuery(query);
+
+            while(resultSet.next()) {
+                allColumns.put(resultSet.getString("column_name"), resultSet.getString("data_type"));
             }
 
             if (!allColumns.containsKey(idColumn)) {
@@ -117,7 +117,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             if (!allColumns.containsKey(contentColumn)) {
                 throw new IllegalStateException("Content column, " + contentColumn + ", does not exist.");
             }
-            if (!allColumns.get(contentColumn).equalsIgnoreCase("text") || !allColumns.get(contentColumn).contains("char")) {
+            if (!allColumns.get(contentColumn).equalsIgnoreCase("text") && !allColumns.get(contentColumn).contains("char")) {
                 throw new IllegalStateException("Content column, is type " + allColumns.get(contentColumn) + ". It must be a type of character string.");
             }
             if (!allColumns.containsKey(embeddingColumn)) {
@@ -151,6 +151,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 metadataColumns.addAll(allColumnsCopy.keySet());
             }
 
+
         } catch (SQLException ex) {
             throw new RuntimeException("Exception caught when verifying vector store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
         }
@@ -178,8 +179,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public List<String> addAll(List<Embedding> embeddings) {
         List<String> ids = embeddings.stream().map(ignored -> randomUUID()).collect(toList());
-        List<TextSegment> nullTextSegments = Collections.nCopies(ids.size(), (TextSegment) null);
-        addAll(ids, embeddings, nullTextSegments);
+        List<TextSegment> emptyTextSegments = Collections.nCopies(ids.size(), null);
+        addAll(ids, embeddings, emptyTextSegments);
         return ids;
     }
 
@@ -310,35 +311,37 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 placeholders += ", ?";
             }
 
-            String query = String.format("INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)", schemaName, tableName, idColumn, contentColumn, embeddingColumn, metadataColumnNames, placeholders);
+            String query = String.format("INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)", schemaName, tableName, idColumn, embeddingColumn, contentColumn, metadataColumnNames, placeholders);
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 for (int i = 0; i < ids.size(); i++) {
                     String id = ids.get(i);
                     Embedding embedding = embeddings.get(i);
                     TextSegment textSegment = textSegments.get(i);
                     String text = textSegment != null ? textSegment.text() : null;
-                    //assume metadata is always present langchain4j/langchain4j-core/src/main/java/dev/langchain4j/data/segment/TextSegment.java L30
-                    Map<String, Object> embeddedMetadataCopy = textSegment.metadata().toMap().entrySet().stream()
-                            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                    preparedStatement.setString(1, id);
+                    Map<String, Object> embeddedMetadataCopy = textSegment != null ? textSegment.metadata().toMap().entrySet().stream()
+                            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())) : null;
+                    preparedStatement.setObject(1, UUID.fromString(id), Types.OTHER);
                     preparedStatement.setObject(2, new PGvector(embedding.vector()));
                     preparedStatement.setString(3, text);
-                    int j = 4;
+                    int j = 0;
                     if (embeddedMetadataCopy != null && !embeddedMetadataCopy.isEmpty()) {
                         for (; j < metadataColumns.size(); j++) {
                             if (embeddedMetadataCopy.containsKey(metadataColumns.get(j))) {
-                                preparedStatement.setObject(j, embeddedMetadataCopy.remove(metadataColumns.get(j)));
+                                preparedStatement.setObject(j + 4, embeddedMetadataCopy.remove(metadataColumns.get(j)));
                             } else {
-                                preparedStatement.setObject(j, null);
+                                preparedStatement.setObject(j + 4, null);
                             }
                         }
                         if (isNotNullOrEmpty(metadataJsonColumn)) {
                             // metadataJsonColumn should be the last column left
-                            preparedStatement.setObject(j, OBJECT_MAPPER.writeValueAsString(embeddedMetadataCopy), Types.OTHER);
+                            preparedStatement.setObject(j + 4, OBJECT_MAPPER.writeValueAsString(embeddedMetadataCopy), Types.OTHER);
                         }
                     } else {
                         for (; j < metadataColumns.size(); j++) {
-                            preparedStatement.setObject(j, null);
+                            preparedStatement.setObject(j + 4, null);
+                        }
+                        if (isNotNullOrEmpty(metadataJsonColumn)) {
+                            preparedStatement.setObject(j + 4, null);
                         }
                     }
                     preparedStatement.addBatch();
@@ -354,7 +357,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    public class Builder {
+    public static class Builder {
 
         private AlloyDBEngine engine;
         private String tableName;
