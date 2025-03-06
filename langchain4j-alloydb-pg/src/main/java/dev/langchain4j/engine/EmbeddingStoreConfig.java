@@ -1,9 +1,9 @@
 package dev.langchain4j.engine;
 
-import java.util.List;
-
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+
+import java.util.List;
 
 public class EmbeddingStoreConfig {
 
@@ -40,23 +40,19 @@ public class EmbeddingStoreConfig {
      * @param storeMetadata (Default: False) boolean to store extra metadata in
      * metadata column if not described in “metadata” field list
      */
-    private EmbeddingStoreConfig(String tableName, Integer vectorSize, String schemaName, String contentColumn, String embeddingColumn, String idColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, Boolean overwriteExisting, Boolean storeMetadata) {
-        ensureNotBlank(tableName, "tableName");
-        ensureGreaterThanZero(vectorSize, "vectorSize");
-        this.contentColumn = contentColumn;
-        this.embeddingColumn = embeddingColumn;
-        this.idColumn = idColumn;
-        this.metadataColumns = metadataColumns;
-        this.metadataJsonColumn = metadataJsonColumn;
-        this.overwriteExisting = overwriteExisting;
-        this.schemaName = schemaName;
-        this.storeMetadata = storeMetadata;
-        this.tableName = tableName;
-        this.vectorSize = vectorSize;
-    }
-
-    public static Builder builder() {
-        return new Builder();
+    private EmbeddingStoreConfig(Builder builder) {
+        ensureNotBlank(builder.tableName, "tableName");
+        ensureGreaterThanZero(builder.vectorSize, "vectorSize");
+        this.contentColumn = builder.contentColumn;
+        this.embeddingColumn = builder.embeddingColumn;
+        this.idColumn = builder.idColumn;
+        this.metadataColumns = builder.metadataColumns;
+        this.metadataJsonColumn = builder.metadataJsonColumn;
+        this.overwriteExisting = builder.overwriteExisting;
+        this.schemaName = builder.schemaName;
+        this.storeMetadata = builder.storeMetadata;
+        this.tableName = builder.tableName;
+        this.vectorSize = builder.vectorSize;
     }
 
     public String getTableName() {
@@ -103,42 +99,38 @@ public class EmbeddingStoreConfig {
 
         private String tableName;
         private Integer vectorSize;
-        private String schemaName;
-        private String contentColumn;
-        private String embeddingColumn;
-        private String idColumn;
+        // Optional
+        private String schemaName = "public";
+        private String contentColumn = "content";
+        private String embeddingColumn = "embedding";
+        private String idColumn = "langchain_id";
         private List<MetadataColumn> metadataColumns;
-        private String metadataJsonColumn;
-        private Boolean overwriteExisting;
-        private Boolean storeMetadata;
+        private String metadataJsonColumn = "langchain_metadata";
+        private Boolean overwriteExisting = false;
+        private Boolean storeMetadata = true;
 
-        public Builder() {
-            this.schemaName = "public";
-            this.contentColumn = "content";
-            this.embeddingColumn = "embedding";
-            this.idColumn = "langchain_id";
-            this.metadataJsonColumn = "langchain_metadata";
-            this.overwriteExisting = false;
-            this.storeMetadata = false;
-        }
-
-        /**
-         * @param tableName (Required) the table name to create - does not
-         * append a suffix or prefix!
-         */
-        public Builder tableName(String tableName) {
+        public Builder(String tableName, Integer vectorSize) {
             this.tableName = tableName;
-            return this;
+            this.vectorSize = vectorSize;
         }
 
-        /**
-         * @param vectorSize (Required) create a vector column with custom
-         * vector size
-         */
-        public Builder vectorSize(Integer vectorSize) {
-            this.vectorSize = vectorSize;
-            return this;
-        }
+        // /**
+        //  * @param tableName (Required) the table name to create - does not
+        //  * append a suffix or prefix!
+        //  */
+        // public Builder tableName(String tableName) {
+        //     this.tableName = tableName;
+        //     return this;
+        // }
+
+        // /**
+        //  * @param vectorSize (Required) create a vector column with custom
+        //  * vector size
+        //  */
+        // public Builder vectorSize(Integer vectorSize) {
+        //     this.vectorSize = vectorSize;
+        //     return this;
+        // }
 
         /**
          * @param schemaName (Default: "public") The schema name
@@ -212,7 +204,7 @@ public class EmbeddingStoreConfig {
         }
 
         public EmbeddingStoreConfig build() {
-            return new EmbeddingStoreConfig(tableName, vectorSize, schemaName, contentColumn, embeddingColumn, idColumn, metadataColumns, metadataJsonColumn, overwriteExisting, storeMetadata);
+            return new EmbeddingStoreConfig(this);
         }
     }
 }
