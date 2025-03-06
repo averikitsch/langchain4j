@@ -15,7 +15,7 @@ public class ScaNNIndexQueryOptions implements QueryOptions {
 
     @Override
     public List<String> getParameterSettings() {
-        List<String> parameters = new ArrayList();
+        List<String> parameters = new ArrayList<>();
         parameters.add(String.format("scann.num_leaves_to_search = %s", numLeavesToSearch));
         parameters.add(String.format("scann.pre_reordering_num_neighbors = %s", preOrderingNumNeighbors));
         return parameters;

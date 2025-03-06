@@ -13,7 +13,7 @@ public class IVFFlatQueryOptions implements QueryOptions {
 
     @Override
     public List<String> getParameterSettings() {
-        List<String> parameters = new ArrayList();
+        List<String> parameters = new ArrayList<>();
         parameters.add(String.format("ivfflat.probes = %d", probes));
         return parameters;
     }

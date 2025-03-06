@@ -2,9 +2,9 @@ package dev.langchain4j.engine;
 
 public class MetadataColumn {
 
-    private String name;
-    private String type;
-    private Boolean nullable;
+    private final String name;
+    private final String type;
+    private final Boolean nullable;
 
     public MetadataColumn(String name, String type, Boolean nullable) {
         this.name = name;

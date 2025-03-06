@@ -101,7 +101,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         String query = String.format("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '%s' AND table_schema = '%s'", tableName, schemaName);
 
-        Map<String, String> allColumns = new HashMap();
+        Map<String, String> allColumns = new HashMap<>();
 
         try (Connection conn = engine.getConnection(); ) {
 
@@ -193,7 +193,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
-        List<String> columns = new ArrayList(metadataColumns);
+        List<String> columns = new ArrayList<>(metadataColumns);
         columns.add(idColumn);
         columns.add(contentColumn);
         columns.add(embeddingColumn);

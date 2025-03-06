@@ -13,7 +13,7 @@ public class HNSWQueryOptions implements QueryOptions {
 
     @Override
     public List<String> getParameterSettings() {
-        List<String> parameters = new ArrayList();
+        List<String> parameters = new ArrayList<>();
         parameters.add(String.format("nsw.efS_search = %d", efSearch));
         return parameters;
     }

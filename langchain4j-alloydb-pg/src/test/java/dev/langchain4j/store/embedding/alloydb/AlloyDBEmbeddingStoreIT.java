@@ -155,7 +155,7 @@ public class AlloyDBEmbeddingStoreIT {
         float[] vector = randomVector(5);
         Embedding embedding = new Embedding(vector);
         
-        Map<String, Object> metaMap = new HashMap();
+        Map<String, Object> metaMap = new HashMap<>();
         metaMap.put("string", "s");
         metaMap.put("uuid", UUID.randomUUID());
         metaMap.put("integer", 1);
@@ -207,7 +207,7 @@ public class AlloyDBEmbeddingStoreIT {
             float[] vector = randomVector(5);
             expectedVectorsAndIndexes.put(Arrays.toString(vector).replaceAll("\s",""), i);
             embeddings.add(new Embedding(vector));
-            Map<String, Object> metaMap = new HashMap();
+            Map<String, Object> metaMap = new HashMap<>();
             metaMap.put("string", "s" + i);
             metaMap.put("uuid", UUID.randomUUID());
             metaMap.put("integer", i);
