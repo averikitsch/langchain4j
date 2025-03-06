@@ -253,4 +253,33 @@ public class AlloyDBEmbeddingStoreIT {
             }
         } 
     }
+
+    @Test
+    void remove_all_from_store() throws SQLException {
+        List<Embedding> embeddings = new ArrayList<>();
+        for(int i = 0; i < 10; i++){
+            float[] vector = randomVector(5);
+            embeddings.add(new Embedding(vector));
+        }
+        List<String> ids = store.addAll(embeddings);
+        String stringIds = ids.stream().map(id -> String.format("'%s'", id)).collect(Collectors.joining(","));
+        try(Statement statement = defaultConnection.createStatement();) {
+            // assert IDs exist
+            ResultSet rs = statement.executeQuery(String.format("SELECT \"%s\" FROM \"%s\" WHERE \"%s\" IN (%s)",
+            embeddingStoreConfig.getIdColumn(),TABLE_NAME, embeddingStoreConfig.getIdColumn(), stringIds));
+            while(rs.next()) {
+                String response = rs.getString(embeddingStoreConfig.getIdColumn());
+                assertThat(ids).contains(response);
+            }
+        }
+
+        store.removeAll(ids);
+
+        try(Statement statement = defaultConnection.createStatement();) {
+            // assert IDs were removed 
+            ResultSet rs = statement.executeQuery(String.format("SELECT \"%s\" FROM \"%s\" WHERE \"%s\" IN (%s)",
+            embeddingStoreConfig.getIdColumn(),TABLE_NAME, embeddingStoreConfig.getIdColumn(), stringIds));
+            assertThat(rs.isBeforeFirst()).isFalse();
+        }
+    }
 }
