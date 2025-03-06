@@ -266,8 +266,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new IllegalArgumentException("ids must not be null or empty");
         }
 
-        String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s IN (?)", schemaName, tableName, idColumn);
-
+        String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s = ANY(?)", schemaName, tableName, idColumn);
         try (Connection conn = engine.getConnection()) {
             try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
                 Array array = conn.createArrayOf("uuid", ids.stream().map(UUID::fromString).toArray());
@@ -275,7 +274,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 preparedStatement.executeUpdate();
             }
         } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Exception caught when inserting into vector store table: \"%s\".\"%s\"",
+            throw new RuntimeException(String.format("Exception caught when deleting from vector store table: \"%s\".\"%s\"",
                     schemaName, tableName), ex);
         }
     }
