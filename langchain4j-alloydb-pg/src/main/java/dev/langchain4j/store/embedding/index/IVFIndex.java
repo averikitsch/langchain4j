@@ -39,7 +39,7 @@ public class IVFIndex implements BaseIndex {
     public String getName() {
         return name;
     }
-    
+
     public class Builder {
 
         private String name;

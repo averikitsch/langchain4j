@@ -1,9 +1,5 @@
 package dev.langchain4j.store.embedding.filter;
 
-import java.util.Collection;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import dev.langchain4j.store.embedding.filter.comparison.ContainsString;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
@@ -17,6 +13,9 @@ import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
 
+import java.util.Collection;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class AlloyDBFilterMapper {
 
@@ -46,40 +45,36 @@ public class AlloyDBFilterMapper {
         } else if (filter instanceof Or or) {
             return mapOr(or);
         } else {
-            throw new UnsupportedOperationException("Unsupported filter type: " + filter.getClass().getName());
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
         }
     }
 
     private String mapEqual(IsEqualTo isEqualTo) {
         String key = isEqualTo.key();
-        return String.format("\"%s\" IS NOT NULL AND \"%s\" = %s", key, key,
-                formatValue(isEqualTo.comparisonValue()));
+        return String.format("\"%s\" IS NOT NULL AND \"%s\" = %s", key, key, formatValue(isEqualTo.comparisonValue()));
     }
 
     private String mapNotEqual(IsNotEqualTo isNotEqualTo) {
         String key = isNotEqualTo.key();
-        return String.format("\"%s\" IS NULL OR \"%s\" != %s", key, key,
-                formatValue(isNotEqualTo.comparisonValue()));
+        return String.format("\"%s\" IS NULL OR \"%s\" != %s", key, key, formatValue(isNotEqualTo.comparisonValue()));
     }
 
     private String mapGreaterThan(IsGreaterThan isGreaterThan) {
-        return String.format("\"%s\" > %s", isGreaterThan.key(),
-                formatValue(isGreaterThan.comparisonValue()));
+        return String.format("\"%s\" > %s", isGreaterThan.key(), formatValue(isGreaterThan.comparisonValue()));
     }
 
     private String mapGreaterThanOrEqual(IsGreaterThanOrEqualTo isGreaterThanOrEqualTo) {
-        return String.format("\"%s\" >= %s", isGreaterThanOrEqualTo.key(),
-                formatValue(isGreaterThanOrEqualTo.comparisonValue()));
+        return String.format("\"%s\" >= %s", isGreaterThanOrEqualTo.key(), formatValue(isGreaterThanOrEqualTo.comparisonValue()));
     }
 
     private String mapLessThan(IsLessThan isLessThan) {
-        return String.format("\"%s\" < %s", isLessThan.key(),
-                formatValue(isLessThan.comparisonValue()));
+        return String.format("\"%s\" < %s", isLessThan.key(), formatValue(isLessThan.comparisonValue()));
     }
 
     private String mapLessThanOrEqual(IsLessThanOrEqualTo isLessThanOrEqualTo) {
-        return String.format("\"%s\" <= %s", isLessThanOrEqualTo.key(),
-                formatValue(isLessThanOrEqualTo.comparisonValue()));
+        return String.format(
+                "\"%s\" <= %s", isLessThanOrEqualTo.key(), formatValue(isLessThanOrEqualTo.comparisonValue()));
     }
 
     private String mapIn(IsIn isIn) {
@@ -88,11 +83,13 @@ public class AlloyDBFilterMapper {
 
     private String mapNotIn(IsNotIn isNotIn) {
         String key = isNotIn.key();
-        return String.format("\"%s\" IS NULL OR \"%s\" NOT IN %s", key, key, formatValuesAsString(isNotIn.comparisonValues()));
+        return String.format(
+                "\"%s\" IS NULL OR \"%s\" NOT IN %s", key, key, formatValuesAsString(isNotIn.comparisonValues()));
     }
 
     private String mapContainsString(ContainsString containsString) {
-        return String.format("\"%s\" ILIKE '%%%s%%'", containsString.key(), formatValue(containsString.comparisonValue()));
+        return String.format(
+                "\"%s\" ILIKE '%%%s%%'", containsString.key(), formatValue(containsString.comparisonValue()));
     }
 
     private String mapAnd(And and) {
@@ -116,8 +113,7 @@ public class AlloyDBFilterMapper {
     }
 
     String formatValuesAsString(Collection<?> values) {
-        return "(" + values.stream().map(v -> String.format("'%s'", v))
-                .collect(Collectors.joining(",")) + ")";
+        return "(" + values.stream().map(v -> String.format("'%s'", v)).collect(Collectors.joining(",")) + ")";
     }
 
 }

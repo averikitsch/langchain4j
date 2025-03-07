@@ -41,6 +41,7 @@ public class ScaNNIndex implements BaseIndex {
     }
 
     public class Builder {
+
         private String name;
         private Integer numLeaves = 5;
         private String quantizer = "sq8";

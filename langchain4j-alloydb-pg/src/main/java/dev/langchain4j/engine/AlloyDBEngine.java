@@ -29,48 +29,36 @@ public class AlloyDBEngine {
 
     /**
      * Constructor for AlloyDBEngine
-     *
-     * @param projectId (Required) AlloyDB project id
-     * @param region (Required) AlloyDB cluster region
-     * @param cluster (Required) AlloyDB cluster
-     * @param instance (Required) AlloyDB instance
-     * @param database (Required) AlloyDB database
-     * @param user (Optional) AlloyDB database user
-     * @param password (Optional) AlloyDB database password
-     * @param ipType (Required) type of IP to be used (PUBLIC, PSC)
-     * @param iamAccountEmail (Optional) IAM account email
+     * @param builder, Builder instance containing the necessary data to
      */
-    public AlloyDBEngine(
-            String projectId,
-            String region,
-            String cluster,
-            String instance,
-            String database,
-            String user,
-            String password,
-            String ipType,
-            String iamAccountEmail
-    ) {
+    public AlloyDBEngine(Builder builder) {
         Boolean enableIAMAuth;
-        if (isNullOrBlank(user) && isNullOrBlank(password)) {
+        String authId = "";
+        if (isNullOrBlank(builder.user) && isNullOrBlank(builder.password)) {
             enableIAMAuth = true;
-            if (isNotNullOrBlank(iamAccountEmail)) {
+            if (isNotNullOrBlank(builder.iamAccountEmail)) {
                 log.debug("Found iamAccountEmail");
-                user = iamAccountEmail;
+                authId = builder.iamAccountEmail;
             } else {
                 log.debug("Retrieving IAM principal email");
-                user = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
+                authId = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
             }
-        } else if (isNotNullOrBlank(user) && isNotNullOrBlank(password)) {
+        } else if (isNotNullOrBlank(builder.user) && isNotNullOrBlank(builder.password)) {
             enableIAMAuth = false;
             log.debug("Found user and password, IAM Auth disabled");
         } else {
             throw new IllegalStateException("Either one of user or password is blank, expected both user and password to be valid credentials or empty");
         }
-        String instanceName = new StringBuilder("projects/").append(ensureNotBlank(projectId, "projectId")).append("/locations/")
-                .append(ensureNotBlank(region, "region")).append("/clusters/").append(ensureNotBlank(cluster, "cluster")).append("/instances/")
-                .append(ensureNotBlank(instance, "instance")).toString();
-        dataSource = createDataSource(database, user, password, instanceName, ipType, enableIAMAuth);
+        String instanceName = new StringBuilder("projects/")
+                .append(ensureNotBlank(builder.projectId, "projectId"))
+                .append("/locations/")
+                .append(ensureNotBlank(builder.region, "region"))
+                .append("/clusters/")
+                .append(ensureNotBlank(builder.cluster, "cluster"))
+                .append("/instances/")
+                .append(ensureNotBlank(builder.instance, "instance"))
+                .toString();
+        dataSource = createDataSource(builder.database, authId, builder.password, instanceName, builder.ipType, enableIAMAuth);
     }
 
     private HikariDataSource createDataSource(
@@ -88,7 +76,7 @@ public class AlloyDBEngine {
         } else {
             config.setPassword(ensureNotBlank(password, "password"));
         }
-        config.setJdbcUrl(String.format("jdbc:postgresql:///%s", ensureNotBlank(database, "database")));
+        config.setJdbcUrl(String.format("jdbc:postg1resql:///%s", ensureNotBlank(database, "database")));
         config.addDataSourceProperty("socketFactory", "com.google.cloud.alloydb.SocketFactory");
         config.addDataSourceProperty("alloydbInstanceName", ensureNotBlank(instanceName, "instanceName"));
         config.addDataSourceProperty("alloydbIpType", ensureNotBlank(ipType, "ipType"));
@@ -103,7 +91,8 @@ public class AlloyDBEngine {
 
             String oauth2APIURL = "https://oauth2.googleapis.com/tokeninfo?access_token=" + accessToken;
             byte[] responseBytes = readBytes(oauth2APIURL);
-            JsonObject responseJson = JsonParser.parseString(new String(responseBytes)).getAsJsonObject();
+            JsonObject responseJson
+                    = JsonParser.parseString(new String(responseBytes)).getAsJsonObject();
             if (responseJson.has("email")) {
                 return responseJson.get("email").getAsString();
             } else {
@@ -129,29 +118,41 @@ public class AlloyDBEngine {
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
 
             if (embeddingStoreConfig.getOverwriteExisting()) {
-                statement.executeUpdate(String.format("DROP TABLE \"%s\".\"%s\"",
-                embeddingStoreConfig.getSchemaName(),
-                        embeddingStoreConfig.getTableName()));
+                statement.executeUpdate(String.format(
+                        "DROP TABLE \"%s\".\"%s\"",
+                        embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()));
             }
             String metadataClause = "";
-            if (embeddingStoreConfig.getMetadataColumns() != null && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
-                metadataClause += String.format(", %s",
-                embeddingStoreConfig.getMetadataColumns()
-                                .stream().map(MetadataColumn::generateColumnString)
+            if (embeddingStoreConfig.getMetadataColumns() != null
+                    && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
+                metadataClause += String.format(
+                        ", %s",
+                        embeddingStoreConfig.getMetadataColumns().stream()
+                                .map(MetadataColumn::generateColumnString)
                                 .collect(Collectors.joining(", ")));
             }
             if (embeddingStoreConfig.getStoreMetadata()) {
-                metadataClause += String.format(", %s", new MetadataColumn(
-                    embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true).generateColumnString());
+                metadataClause += String.format(
+                        ", %s",
+                        new MetadataColumn(embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true)
+                                .generateColumnString());
             }
-            String query = String.format("CREATE TABLE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NULL, \"%s\" vector(%d) NOT NULL%s)",
-                    embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName(),
-                    embeddingStoreConfig.getIdColumn(), embeddingStoreConfig.getContentColumn(),
-                    embeddingStoreConfig.getEmbeddingColumn(), embeddingStoreConfig.getVectorSize(), metadataClause);
+            String query = String.format(
+                    "CREATE TABLE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NULL, \"%s\" vector(%d) NOT NULL%s)",
+                    embeddingStoreConfig.getSchemaName(),
+                    embeddingStoreConfig.getTableName(),
+                    embeddingStoreConfig.getIdColumn(),
+                    embeddingStoreConfig.getContentColumn(),
+                    embeddingStoreConfig.getEmbeddingColumn(),
+                    embeddingStoreConfig.getVectorSize(),
+                    metadataClause);
             statement.executeUpdate(query);
         } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Failed to initialize vector store table: \"%s\".\"%s\"",
-                    embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()), ex);
+            throw new RuntimeException(
+                    String.format(
+                            "Failed to initialize vector store table: \"%s\".\"%s\"",
+                            embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()),
+                    ex);
         }
     }
 
@@ -159,63 +160,34 @@ public class AlloyDBEngine {
         //to be implemented
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
     public static class Builder {
 
-        private String projectId;
-        private String region;
-        private String cluster;
-        private String instance;
-        private String database;
+        private final String projectId;
+        private final String region;
+        private final String cluster;
+        private final String instance;
+        private final String database;
+        // Optional
         private String user;
         private String password;
-        private String ipType;
+        private String ipType = "PUBLIC";
         private String iamAccountEmail;
 
-        public Builder() {
-        }
-
         /**
+         * @return builder instance
          * @param projectId (Required) AlloyDB project id
-         */
-        public Builder projectId(String projectId) {
-            this.projectId = projectId;
-            return this;
-        }
-
-        /**
          * @param region (Required) AlloyDB cluster region
-         */
-        public Builder region(String region) {
-            this.region = region;
-            return this;
-        }
-
-        /**
          * @param cluster (Required) AlloyDB cluster
-         */
-        public Builder cluster(String cluster) {
-            this.cluster = cluster;
-            return this;
-        }
-
-        /**
          * @param instance (Required) AlloyDB instance
-         */
-        public Builder instance(String instance) {
-            this.instance = instance;
-            return this;
-        }
-
-        /**
          * @param database (Required) AlloyDB database
+         *
          */
-        public Builder database(String database) {
+        public Builder(String projectId, String region, String cluster, String instance, String database) {
+            this.projectId = projectId;
+            this.region = region;
+            this.cluster = cluster;
+            this.instance = instance;
             this.database = database;
-            return this;
         }
 
         /**
@@ -235,7 +207,7 @@ public class AlloyDBEngine {
         }
 
         /**
-         * @param ipType (Required) type of IP to be used (PUBLIC, PSC)
+         * @param ipType (Optional) type of IP to be used (PUBLIC, PSC)
          */
         public Builder ipType(String ipType) {
             this.ipType = ipType;
@@ -251,7 +223,7 @@ public class AlloyDBEngine {
         }
 
         public AlloyDBEngine build() {
-            return new AlloyDBEngine(projectId, region, cluster, instance, database, user, password, ipType, iamAccountEmail);
+            return new AlloyDBEngine(this);
         }
     }
 }

@@ -42,7 +42,7 @@ public class IVFFlatIndex implements BaseIndex {
 
         private String name;
         private Integer listCount = 100;
-        private DistanceStrategy distanceStrategy= DistanceStrategy.COSINE_DISTANCE;
+        private DistanceStrategy distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
         private List<String> partialIndexes;
 
         public Builder name(String name) {

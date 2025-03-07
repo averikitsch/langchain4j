@@ -21,42 +21,33 @@ public class EmbeddingStoreConfig {
     /**
      * create a non-default VectorStore table
      *
-     * @param tableName (Required) the table name to create - does not append a
-     * suffix or prefix!
-     * @param vectorSize (Required) create a vector column with custom vector
-     * size
-     * @param schemaName (Default: "public") The schema name
-     * @param contentColumn (Default: "content") create the content column with
-     * custom name
-     * @param embeddingColumn (Default: "embedding") create the embedding column
-     * with custom name
-     * @param idColumn (Optional, Default: "langchain_id") Column to store ids.
-     * @param metadataColumns list of SQLAlchemy Columns to create for custom
-     * metadata
-     * @param metadataJsonColumn (Default: "langchain_metadata") the column to
-     * store extra metadata in
-     * @param overwriteExisting (Default: False) boolean for dropping table
-     * before insertion
-     * @param storeMetadata (Default: False) boolean to store extra metadata in
-     * metadata column if not described in “metadata” field list
+     * @param builder, Builder instance containing the necessary data to
+     * construct tableName (Required) the table name to create - does not append
+     * a suffix or prefix! vectorSize (Required) create a vector column with
+     * custom vector size schemaName (Default: "public") The schema name
+     * contentColumn (Default: "content") create the content column with custom
+     * name embeddingColumn (Default: "embedding") create the embedding column
+     * with custom name idColumn (Optional, Default: "langchain_id") Column to
+     * store ids. metadataColumns list of SQLAlchemy Columns to create for
+     * custom metadata metadataJsonColumn (Default: "langchain_metadata") the
+     * column to store extra metadata in overwriteExisting (Default: False)
+     * boolean for dropping table before insertion storeMetadata (Default:
+     * False) boolean to store extra metadata in metadata column if not
+     * described in “metadata” field list
      */
-    private EmbeddingStoreConfig(String tableName, Integer vectorSize, String schemaName, String contentColumn, String embeddingColumn, String idColumn, List<MetadataColumn> metadataColumns, String metadataJsonColumn, Boolean overwriteExisting, Boolean storeMetadata) {
-        ensureNotBlank(tableName, "tableName");
-        ensureGreaterThanZero(vectorSize, "vectorSize");
-        this.contentColumn = contentColumn;
-        this.embeddingColumn = embeddingColumn;
-        this.idColumn = idColumn;
-        this.metadataColumns = metadataColumns;
-        this.metadataJsonColumn = metadataJsonColumn;
-        this.overwriteExisting = overwriteExisting;
-        this.schemaName = schemaName;
-        this.storeMetadata = storeMetadata;
-        this.tableName = tableName;
-        this.vectorSize = vectorSize;
-    }
-
-    public static Builder builder() {
-        return new Builder();
+    private EmbeddingStoreConfig(Builder builder) {
+        ensureNotBlank(builder.tableName, "tableName");
+        ensureGreaterThanZero(builder.vectorSize, "vectorSize");
+        this.contentColumn = builder.contentColumn;
+        this.embeddingColumn = builder.embeddingColumn;
+        this.idColumn = builder.idColumn;
+        this.metadataColumns = builder.metadataColumns;
+        this.metadataJsonColumn = builder.metadataJsonColumn;
+        this.overwriteExisting = builder.overwriteExisting;
+        this.schemaName = builder.schemaName;
+        this.storeMetadata = builder.storeMetadata;
+        this.tableName = builder.tableName;
+        this.vectorSize = builder.vectorSize;
     }
 
     public String getTableName() {
@@ -101,43 +92,27 @@ public class EmbeddingStoreConfig {
 
     public static class Builder {
 
-        private String tableName;
-        private Integer vectorSize;
-        private String schemaName;
-        private String contentColumn;
-        private String embeddingColumn;
-        private String idColumn;
+        private final String tableName;
+        private final Integer vectorSize;
+        private String schemaName = "public";
+        private String contentColumn = "content";
+        private String embeddingColumn = "embedding";
+        private String idColumn = "langchain_id";
         private List<MetadataColumn> metadataColumns;
-        private String metadataJsonColumn;
-        private Boolean overwriteExisting;
-        private Boolean storeMetadata;
-
-        public Builder() {
-            this.schemaName = "public";
-            this.contentColumn = "content";
-            this.embeddingColumn = "embedding";
-            this.idColumn = "langchain_id";
-            this.metadataJsonColumn = "langchain_metadata";
-            this.overwriteExisting = false;
-            this.storeMetadata = false;
-        }
+        private String metadataJsonColumn = "langchain_metadata";
+        private Boolean overwriteExisting = false;
+        private Boolean storeMetadata = false;
 
         /**
+         * @return builder instance
          * @param tableName (Required) the table name to create - does not
          * append a suffix or prefix!
-         */
-        public Builder tableName(String tableName) {
-            this.tableName = tableName;
-            return this;
-        }
-
-        /**
          * @param vectorSize (Required) create a vector column with custom
          * vector size
          */
-        public Builder vectorSize(Integer vectorSize) {
+        public Builder(String tableName, Integer vectorSize) {
+            this.tableName = tableName;
             this.vectorSize = vectorSize;
-            return this;
         }
 
         /**
@@ -212,7 +187,7 @@ public class EmbeddingStoreConfig {
         }
 
         public EmbeddingStoreConfig build() {
-            return new EmbeddingStoreConfig(tableName, vectorSize, schemaName, contentColumn, embeddingColumn, idColumn, metadataColumns, metadataJsonColumn, overwriteExisting, storeMetadata);
+            return new EmbeddingStoreConfig(this);
         }
     }
 }
