@@ -12,7 +12,6 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -45,8 +44,9 @@ public class AlloyDBFilterMapper {
         } else if (filter instanceof Or or) {
             return mapOr(or);
         } else {
+            String filterClass = filter != null ? filter.getClass().getName() : "null";
             throw new UnsupportedOperationException(
-                    "Unsupported filter type: " + filter.getClass().getName());
+                    "Unsupported filter type: " + filterClass);
         }
     }
 

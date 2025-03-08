@@ -1,9 +1,9 @@
 package dev.langchain4j.engine;
 
-import java.util.List;
-
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+
+import java.util.List;
 
 public class EmbeddingStoreConfig {
 
@@ -94,7 +94,7 @@ public class EmbeddingStoreConfig {
 
         private final String tableName;
         private final Integer vectorSize;
-        private String schemaName = "public";
+        private String schemaName = "PUBLIC";
         private String contentColumn = "content";
         private String embeddingColumn = "embedding";
         private String idColumn = "langchain_id";
@@ -116,7 +116,7 @@ public class EmbeddingStoreConfig {
         }
 
         /**
-         * @param schemaName (Default: "public") The schema name
+         * @param schemaName (Default: "PUBLIC") The schema name
          */
         public Builder schemaName(String schemaName) {
             this.schemaName = schemaName;
