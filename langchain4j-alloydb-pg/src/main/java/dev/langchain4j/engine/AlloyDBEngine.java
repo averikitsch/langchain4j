@@ -26,6 +26,7 @@ public class AlloyDBEngine {
 
     /**
      * Constructor for AlloyDBEngine
+     *
      * @param builder, Builder instance containing the necessary data to
      */
     public AlloyDBEngine(Builder builder) {
