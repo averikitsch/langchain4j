@@ -76,7 +76,5 @@ public class IVFIndex implements BaseIndex {
         public IVFIndex build() {
             return new IVFIndex(this);
         }
-
     }
-
 }

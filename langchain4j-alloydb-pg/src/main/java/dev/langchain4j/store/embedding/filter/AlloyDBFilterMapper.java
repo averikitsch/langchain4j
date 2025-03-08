@@ -45,8 +45,7 @@ public class AlloyDBFilterMapper {
             return mapOr(or);
         } else {
             String filterClass = filter != null ? filter.getClass().getName() : "null";
-            throw new UnsupportedOperationException(
-                    "Unsupported filter type: " + filterClass);
+            throw new UnsupportedOperationException("Unsupported filter type: " + filterClass);
         }
     }
 
@@ -65,7 +64,8 @@ public class AlloyDBFilterMapper {
     }
 
     private String mapGreaterThanOrEqual(IsGreaterThanOrEqualTo isGreaterThanOrEqualTo) {
-        return String.format("\"%s\" >= %s", isGreaterThanOrEqualTo.key(), formatValue(isGreaterThanOrEqualTo.comparisonValue()));
+        return String.format(
+                "\"%s\" >= %s", isGreaterThanOrEqualTo.key(), formatValue(isGreaterThanOrEqualTo.comparisonValue()));
     }
 
     private String mapLessThan(IsLessThan isLessThan) {
@@ -115,5 +115,4 @@ public class AlloyDBFilterMapper {
     String formatValuesAsString(Collection<?> values) {
         return "(" + values.stream().map(v -> String.format("'%s'", v)).collect(Collectors.joining(",")) + ")";
     }
-
 }

@@ -41,8 +41,7 @@ import java.util.stream.Collectors;
 
 public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .enable(INDENT_OUTPUT);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
     private final AlloyDBFilterMapper FILTER_MAPPER = new AlloyDBFilterMapper();
     private final AlloyDBEngine engine;
     private final String tableName;
@@ -105,7 +104,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         Map<String, String> allColumns = new HashMap<>();
 
-        try (Connection conn = engine.getConnection();) {
+        try (Connection conn = engine.getConnection(); ) {
 
             ResultSet resultSet = conn.createStatement().executeQuery(query);
 
@@ -142,8 +141,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             if (ignoredColumns != null && !ignoredColumns.isEmpty()) {
 
-                Map<String, String> allColumnsCopy
-                        = allColumns.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                Map<String, String> allColumnsCopy =
+                        allColumns.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
                 ignoredColumns.add(idColumn);
                 ignoredColumns.add(contentColumn);
                 ignoredColumns.add(embeddingColumn);
@@ -157,8 +156,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         } catch (SQLException ex) {
             throw new RuntimeException(
-                    "Exception caught when verifying vector store table: \""
-                    + schemaName + "\".\"" + tableName + "\"", ex);
+                    "Exception caught when verifying vector store table: \"" + schemaName + "\".\"" + tableName + "\"",
+                    ex);
         }
     }
 
@@ -206,16 +205,15 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             columns.add(metadataJsonColumn);
         }
 
-        String columnNames
-                = columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
+        String columnNames =
+                columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
 
         String filterString = FILTER_MAPPER.map(request.filter());
 
-        String whereClause
-                = isNotNullOrBlank(filterString) ? String.format("WHERE %s", filterString) : "";
+        String whereClause = isNotNullOrBlank(filterString) ? String.format("WHERE %s", filterString) : "";
 
-        String vector
-                = String.format("'%s'", Arrays.toString(request.queryEmbedding().vector()));
+        String vector =
+                String.format("'%s'", Arrays.toString(request.queryEmbedding().vector()));
 
         String query = String.format(
                 "SELECT %s, %s(%s, %s) as distance FROM \"%s\".\"%s\" %s ORDER BY %s %s %s LIMIT %d;",
@@ -276,7 +274,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     "Exception caught when searching in store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
         }
         return new EmbeddingSearchResult<>(embeddingMatches);
-
     }
 
     @Override
@@ -313,8 +310,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     "List parameters ids and embeddings and textSegments shouldn't be different sizes!");
         }
         try (Connection connection = engine.getConnection()) {
-            String metadataColumnNames
-                    = metadataColumns.stream().map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
+            String metadataColumnNames =
+                    metadataColumns.stream().map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
 
             // idColumn, contentColumn and embeddedColumn
             int totalColumns = 3;
@@ -382,7 +379,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when inserting into vector store table: \"" + schemaName + "\".\"" + tableName
-                    + "\"",
+                            + "\"",
                     ex);
         }
     }
@@ -490,5 +487,4 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             return new AlloyDBEmbeddingStore(this);
         }
     }
-
 }

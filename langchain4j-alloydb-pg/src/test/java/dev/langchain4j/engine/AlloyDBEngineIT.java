@@ -1,8 +1,8 @@
 package dev.langchain4j.engine;
 
+import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static dev.langchain4j.internal.Utils.randomUUID;
 
 import dev.langchain4j.utils.AlloyDBTestUtils;
 import java.sql.Connection;
@@ -60,14 +60,11 @@ public class AlloyDBEngineIT {
                 .executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS \"%s\"", CUSTOM_SCHEMA));
 
         defaultParameters = new EmbeddingStoreConfig.Builder(TABLE_NAME, VECTOR_SIZE).build();
-
     }
 
     @AfterEach
     public void afterEach() throws SQLException {
-        defaultConnection
-                .createStatement()
-                .executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
+        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
         defaultConnection
                 .createStatement()
                 .executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", CUSTOM_TABLE_NAME));
@@ -96,7 +93,6 @@ public class AlloyDBEngineIT {
         expectedNames.add("embedding");
 
         AlloyDBTestUtils.verifyColumns(defaultConnection, "PUBLIC", TABLE_NAME, expectedNames);
-
     }
 
     @Test
@@ -116,7 +112,6 @@ public class AlloyDBEngineIT {
         expectedColumns.add("embedding");
 
         AlloyDBTestUtils.verifyColumns(defaultConnection, "PUBLIC", TABLE_NAME, expectedColumns);
-
     }
 
     @Test
@@ -126,7 +121,8 @@ public class AlloyDBEngineIT {
         metadataColumns.add(new MetadataColumn("source", "TEXT", false));
 
         EmbeddingStoreConfig customParams = new EmbeddingStoreConfig.Builder(CUSTOM_TABLE_NAME, 1000)
-                .schemaName(CUSTOM_SCHEMA).contentColumn("custom_content_column")
+                .schemaName(CUSTOM_SCHEMA)
+                .contentColumn("custom_content_column")
                 .embeddingColumn("custom_embedding_column")
                 .idColumn("custom_embedding_id_column")
                 .metadataColumns(metadataColumns)
@@ -144,7 +140,6 @@ public class AlloyDBEngineIT {
         expectedColumns.add("custom_metadata_json_column");
 
         AlloyDBTestUtils.verifyColumns(defaultConnection, CUSTOM_SCHEMA, CUSTOM_TABLE_NAME, expectedColumns);
-
     }
 
     @Test
@@ -160,8 +155,8 @@ public class AlloyDBEngineIT {
 
         assertThat(exception.getMessage())
                 .isEqualTo(String.format("Failed to initialize vector store table: \"public\".\"%s\"", TABLE_NAME));
-        assertThat(exception.getCause()
-                .getMessage()).isEqualTo(String.format("ERROR: table \"%s\" does not exist", TABLE_NAME));
+        assertThat(exception.getCause().getMessage())
+                .isEqualTo(String.format("ERROR: table \"%s\" does not exist", TABLE_NAME));
     }
 
     @Test
@@ -191,7 +186,7 @@ public class AlloyDBEngineIT {
         AlloyDBEngine iamEngine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
                 .iamAccountEmail(iamEmail)
                 .build();
-        try (Connection connection = iamEngine.getConnection();) {
+        try (Connection connection = iamEngine.getConnection(); ) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
             assertThat(rs.getInt(1)).isEqualTo(1);
@@ -200,13 +195,11 @@ public class AlloyDBEngineIT {
 
     @Test
     void create_engine_with_get_iam_email() throws SQLException {
-        AlloyDBEngine iamEngine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
-                .build();
-        try (Connection connection = iamEngine.getConnection();) {
+        AlloyDBEngine iamEngine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database).build();
+        try (Connection connection = iamEngine.getConnection(); ) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
             assertThat(rs.getInt(1)).isEqualTo(1);
         }
     }
-
 }

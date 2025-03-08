@@ -76,6 +76,5 @@ public class ScaNNIndex implements BaseIndex {
         public ScaNNIndex build() {
             return new ScaNNIndex(this);
         }
-
     }
 }

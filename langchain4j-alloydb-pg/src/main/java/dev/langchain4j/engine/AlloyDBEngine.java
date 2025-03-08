@@ -44,7 +44,8 @@ public class AlloyDBEngine {
             enableIAMAuth = false;
             log.debug("Found user and password, IAM Auth disabled");
         } else {
-            throw new IllegalStateException("Either one of user or password is blank, expected both user and password to be valid credentials or empty");
+            throw new IllegalStateException(
+                    "Either one of user or password is blank, expected both user and password to be valid credentials or empty");
         }
         String instanceName = new StringBuilder("projects/")
                 .append(ensureNotBlank(builder.projectId, "projectId"))
@@ -55,17 +56,12 @@ public class AlloyDBEngine {
                 .append("/instances/")
                 .append(ensureNotBlank(builder.instance, "instance"))
                 .toString();
-        dataSource = createDataSource(builder.database, authId, builder.password, instanceName, builder.ipType, enableIAMAuth);
+        dataSource = createDataSource(
+                builder.database, authId, builder.password, instanceName, builder.ipType, enableIAMAuth);
     }
 
     private HikariDataSource createDataSource(
-            String database,
-            String user,
-            String password,
-            String instanceName,
-            String ipType,
-            Boolean enableIAMAuth
-    ) {
+            String database, String user, String password, String instanceName, String ipType, Boolean enableIAMAuth) {
         HikariConfig config = new HikariConfig();
         config.setUsername(ensureNotBlank(user, "user"));
         if (enableIAMAuth) {
@@ -88,8 +84,8 @@ public class AlloyDBEngine {
 
             String oauth2APIURL = "https://oauth2.googleapis.com/tokeninfo?access_token=" + accessToken;
             byte[] responseBytes = readBytes(oauth2APIURL);
-            JsonObject responseJson
-                    = JsonParser.parseString(new String(responseBytes)).getAsJsonObject();
+            JsonObject responseJson =
+                    JsonParser.parseString(new String(responseBytes)).getAsJsonObject();
             if (responseJson.has("email")) {
                 return responseJson.get("email").getAsString();
             } else {
@@ -110,7 +106,7 @@ public class AlloyDBEngine {
      * the Vector table
      */
     public void initVectorStoreTable(EmbeddingStoreConfig embeddingStoreConfig) {
-        try (Connection connection = getConnection();) {
+        try (Connection connection = getConnection(); ) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
 
@@ -154,7 +150,7 @@ public class AlloyDBEngine {
     }
 
     public void initChatHistoryTable() {
-        //to be implemented
+        // to be implemented
     }
 
     public static class Builder {

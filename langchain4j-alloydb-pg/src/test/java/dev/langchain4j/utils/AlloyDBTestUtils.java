@@ -32,7 +32,8 @@ public class AlloyDBTestUtils {
 
     public static void verifyIndex(Connection connection, String tableName, String type, String expected)
             throws SQLException {
-        ResultSet indexes = connection.createStatement()
+        ResultSet indexes = connection
+                .createStatement()
                 .executeQuery(String.format(
                         "SELECT indexdef FROM pg_indexes WHERE tablename = '%s' AND indexname = '%s_%s_index'",
                         tableName.toLowerCase(), tableName.toLowerCase(), type));
@@ -48,5 +49,4 @@ public class AlloyDBTestUtils {
         }
         return vector;
     }
-
 }
