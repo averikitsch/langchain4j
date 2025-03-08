@@ -30,8 +30,8 @@ public class AlloyDBEngine {
      */
     public AlloyDBEngine(Builder builder) {
         Boolean enableIAMAuth;
-        String authId = "";
-        if (isNullOrBlank(builder.user) && isNullOrBlank(builder.password)) {
+        String authId = builder.user;
+        if (isNullOrBlank(authId) && isNullOrBlank(builder.password)) {
             enableIAMAuth = true;
             if (isNotNullOrBlank(builder.iamAccountEmail)) {
                 log.debug("Found iamAccountEmail");
@@ -40,7 +40,7 @@ public class AlloyDBEngine {
                 log.debug("Retrieving IAM principal email");
                 authId = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
             }
-        } else if (isNotNullOrBlank(builder.user) && isNotNullOrBlank(builder.password)) {
+        } else if (isNotNullOrBlank(authId) && isNotNullOrBlank(builder.password)) {
             enableIAMAuth = false;
             log.debug("Found user and password, IAM Auth disabled");
         } else {
