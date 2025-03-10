@@ -50,7 +50,7 @@ public class AlloyDBEngineIT {
         engine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
                 .user(user)
                 .password(password)
-                .ipType("PUBLIC")
+                .ipType("public")
                 .build();
 
         defaultConnection = engine.getConnection();
@@ -92,7 +92,7 @@ public class AlloyDBEngineIT {
         expectedNames.add("content");
         expectedNames.add("embedding");
 
-        AlloyDBTestUtils.verifyColumns(defaultConnection, "PUBLIC", TABLE_NAME, expectedNames);
+        AlloyDBTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedNames);
     }
 
     @Test
@@ -111,7 +111,7 @@ public class AlloyDBEngineIT {
         expectedColumns.add("overwritten");
         expectedColumns.add("embedding");
 
-        AlloyDBTestUtils.verifyColumns(defaultConnection, "PUBLIC", TABLE_NAME, expectedColumns);
+        AlloyDBTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedColumns);
     }
 
     @Test

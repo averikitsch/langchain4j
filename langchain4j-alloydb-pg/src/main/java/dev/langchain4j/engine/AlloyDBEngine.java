@@ -70,7 +70,7 @@ public class AlloyDBEngine {
         } else {
             config.setPassword(ensureNotBlank(password, "password"));
         }
-        config.setJdbcUrl(String.format("jdbc:postg1resql:///%s", ensureNotBlank(database, "database")));
+        config.setJdbcUrl(String.format("jdbc:postgresql:///%s", ensureNotBlank(database, "database")));
         config.addDataSourceProperty("socketFactory", "com.google.cloud.alloydb.SocketFactory");
         config.addDataSourceProperty("alloydbInstanceName", ensureNotBlank(instanceName, "instanceName"));
         config.addDataSourceProperty("alloydbIpType", ensureNotBlank(ipType, "ipType"));
@@ -164,7 +164,7 @@ public class AlloyDBEngine {
         // Optional
         private String user;
         private String password;
-        private String ipType = "PUBLIC";
+        private String ipType = "public";
         private String iamAccountEmail;
 
         /**

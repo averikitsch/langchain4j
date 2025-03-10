@@ -94,7 +94,7 @@ public class EmbeddingStoreConfig {
 
         private final String tableName;
         private final Integer vectorSize;
-        private String schemaName = "PUBLIC";
+        private String schemaName = "public";
         private String contentColumn = "content";
         private String embeddingColumn = "embedding";
         private String idColumn = "langchain_id";
@@ -116,7 +116,7 @@ public class EmbeddingStoreConfig {
         }
 
         /**
-         * @param schemaName (Default: "PUBLIC") The schema name
+         * @param schemaName (Default: "public") The schema name
          */
         public Builder schemaName(String schemaName) {
             this.schemaName = schemaName;
