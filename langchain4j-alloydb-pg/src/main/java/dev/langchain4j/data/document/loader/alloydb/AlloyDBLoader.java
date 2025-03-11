@@ -14,6 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import dev.langchain4j.data.document.DefaultDocument;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.engine.AlloyDBEngine;
@@ -112,25 +113,25 @@ public class AlloyDBLoader {
                 throw new IllegalArgumentException("Only one of 'format' or 'formatter' should be specified.");
             }
 
-            if (format == null && formatter == null) {
+            if (format != null) {
+                switch (format) {
+                    case "csv":
+                        this.formatter = AlloyDBLoader::csvFormatter;
+                        break;
+                    case "text":
+                        this.formatter = AlloyDBLoader::textFormatter;
+                        break;
+                    case "JSON":
+                        this.formatter = AlloyDBLoader::jsonFormatter;
+                        break;
+                    case "YAML":
+                        this.formatter = AlloyDBLoader::yamlFormatter;
+                        break;
+                    default:
+                        throw new IllegalArgumentException("format must be type: 'csv', 'text', 'JSON', 'YAML'");
+                }
+            } else if (formatter == null) {
                 this.formatter = AlloyDBLoader::textFormatter;
-            }
-
-            switch (format) {
-                case "csv":
-                    this.formatter = AlloyDBLoader::csvFormatter;
-                    break;
-                case "text":
-                    this.formatter = AlloyDBLoader::textFormatter;
-                    break;
-                case "JSON":
-                    this.formatter = AlloyDBLoader::jsonFormatter;
-                    break;
-                case "YAML":
-                    this.formatter = AlloyDBLoader::yamlFormatter;
-                    break;
-                default:
-                    throw new IllegalArgumentException("format must be type: 'csv', 'text', 'JSON', 'YAML'");
             }
 
             List<String> columnNames = new ArrayList<>();
@@ -142,23 +143,28 @@ public class AlloyDBLoader {
                 }
             }
 
-            contentColumns = contentColumns == null || contentColumns.isEmpty() ? List.of(columnNames.get(0)) : contentColumns;
-            metadataColumns = metadataColumns == null || metadataColumns.isEmpty() ? columnNames.stream().filter(col -> !contentColumns.contains(col)).toList() : metadataColumns;
+            contentColumns
+                    = contentColumns == null || contentColumns.isEmpty() ? List.of(columnNames.get(0)) : contentColumns;
+            metadataColumns = metadataColumns == null || metadataColumns.isEmpty()
+                    ? columnNames.stream()
+                            .filter(col -> !contentColumns.contains(col))
+                            .toList()
+                    : metadataColumns;
 
             if (metadataJsonColumn != null && !columnNames.contains(metadataJsonColumn)) {
-                throw new IllegalArgumentException(String.format("Column %s not found in query result %s.", metadataJsonColumn, columnNames));
+                throw new IllegalArgumentException(
+                        String.format("Column %s not found in query result %s.", metadataJsonColumn, columnNames));
             }
             if (metadataJsonColumn == null && columnNames.contains(DEFAULT_METADATA_COL)) {
                 metadataJsonColumn = DEFAULT_METADATA_COL;
-            } else {
-                metadataJsonColumn = null;
             }
 
             List<String> allNames = new ArrayList<>(contentColumns);
             allNames.addAll(metadataColumns);
             for (String name : allNames) {
                 if (!columnNames.contains(name)) {
-                    throw new IllegalArgumentException(String.format("Column %s not found in query result %s.", name, columnNames));
+                    throw new IllegalArgumentException(
+                            String.format("Column %s not found in query result %s.", name, columnNames));
                 }
             }
             return new AlloyDBLoader(this);
@@ -238,10 +244,13 @@ public class AlloyDBLoader {
         Map<String, Object> metaDataMap = new HashMap<>();
         if (metadataJsonColumn != null && row.containsKey(metadataJsonColumn)) {
             try {
-                metaDataMap.putAll(objectMapper.readValue(row.get(metadataJsonColumn).toString(), Map.class));
+                metaDataMap.putAll(
+                        objectMapper.readValue(row.get(metadataJsonColumn).toString(), Map.class));
             } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to parse JSON: " + e.getMessage()
-                        + ". Ensure metadata JSON structure matches the expected format.", e);
+                throw new RuntimeException(
+                        "Failed to parse JSON: " + e.getMessage()
+                        + ". Ensure metadata JSON structure matches the expected format.",
+                        e);
             }
         }
 
@@ -251,6 +260,6 @@ public class AlloyDBLoader {
             }
         }
         Metadata metadata = Metadata.from(metaDataMap);
-        return new Document(pageContent, metadata);
+        return new DefaultDocument(pageContent, metadata);
     }
 }
