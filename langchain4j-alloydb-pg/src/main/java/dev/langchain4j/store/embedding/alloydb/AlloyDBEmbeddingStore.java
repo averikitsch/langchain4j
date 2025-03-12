@@ -39,6 +39,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * AlloyDB EmbeddingStore Implementation
+ * <p>
+ * Instances of this store are created by configuring a builder:
+ * </p>{@code
+ * EmbeddingStore<TextSegment> store = new AlloyDBEmbeddingStore.Builder(alloyDBEngine, "TABLE_NAME")
+ * .metadataColumns(metadataColumnNames)
+ * .build();}
+ */
 public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
@@ -57,24 +66,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * Constructor for AlloyDBEmbeddingStore
      *
-     * @param engine The connection object to use
-     * @param tableName The name of the table (no default, user must specify)
-     * @param schemaName (Optional, Default: "public") The schema name
-     * @param contentColumn (Optional, Default: “content”) Column that represent
-     * a Document’s page content
-     * @param embeddingColumn (Optional, Default: “embedding”) Column for
-     * embedding vectors. The embedding is generated from the document value
-     * @param idColumn (Optional, Default: "langchain_id") Column to store ids.
-     * @param metadataJsonColumn (Default: "langchain_metadata") the column to
-     * store extra metadata in
-     * @param metadataColumns (Optional) Column(s) that represent a document’s
-     * metadata
-     * @param ignoreMetadataColumnNames (Optional) Column(s) to ignore in
-     * pre-existing tables for a document’s
-     * @param distanceStrategy (Defaults: COSINE_DISTANCE) Distance strategy to
-     * use for vector similarity search
-     * @param queryOptions (Optional) QueryOptions class with vector search
-     * parameters
+     * @param builder builder.
      */
     public AlloyDBEmbeddingStore(Builder builder) {
         this.engine = builder.engine;
@@ -384,6 +376,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
+    /**
+     * Builder which configures and creates instances of {@link AlloyDBEmbeddingStore}.
+     */
     public static class Builder {
 
         private AlloyDBEngine engine;
@@ -398,6 +393,10 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         private DistanceStrategy distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
         private QueryOptions queryOptions;
 
+        /**Constructor for Builder
+         * @param engine required {@link AlloyDBEngine}
+         * @param tableName table to be used as embedding store
+         */
         public Builder(AlloyDBEngine engine, String tableName) {
             this.engine = engine;
             this.tableName = tableName;
@@ -405,6 +404,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param schemaName (Default: "public") The schema name
+         * @return this builder
          */
         public Builder schemaName(String schemaName) {
             this.schemaName = schemaName;
@@ -414,6 +414,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * @param contentColumn (Default: "content") create the content column
          * with custom name
+         * @return this builder
          */
         public Builder contentColumn(String contentColumn) {
             this.contentColumn = contentColumn;
@@ -423,6 +424,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * @param embeddingColumn (Default: "embedding") create the embedding
          * column with custom name
+         * @return this builder
          */
         public Builder embeddingColumn(String embeddingColumn) {
             this.embeddingColumn = embeddingColumn;
@@ -432,6 +434,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * @param idColumn (Optional, Default: "langchain_id") Column to store
          * ids.
+         * @return this builder
          */
         public Builder idColumn(String idColumn) {
             this.idColumn = idColumn;
@@ -441,6 +444,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * @param metadataColumns list of SQLAlchemy Columns to create for
          * custom metadata
+         * @return this builder
          */
         public Builder metadataColumns(List<String> metadataColumns) {
             this.metadataColumns = metadataColumns;
@@ -450,6 +454,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * @param metadataJsonColumn (Default: "langchain_metadata") the column
          * to store extra metadata in
+         * @return this builder
          */
         public Builder metadataJsonColumn(String metadataJsonColumn) {
             this.metadataJsonColumn = metadataJsonColumn;
@@ -459,6 +464,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * @param ignoreMetadataColumnNames (Optional) Column(s) to ignore in
          * pre-existing tables for a document’s
+         * @return this builder
          */
         public Builder ignoreMetadataColumnNames(List<String> ignoreMetadataColumnNames) {
             this.ignoreMetadataColumnNames = ignoreMetadataColumnNames;
@@ -468,6 +474,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * @param distanceStrategy (Defaults: COSINE_DISTANCE) Distance strategy
          * to use for vector similarity search
+         * @return this builder
          */
         public Builder distanceStrategy(DistanceStrategy distanceStrategy) {
             this.distanceStrategy = distanceStrategy;
@@ -477,12 +484,17 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * @param queryOptions (Optional) QueryOptions class with vector search
          * parameters
+         * @return this builder
          */
         public Builder queryOptions(QueryOptions queryOptions) {
             this.queryOptions = queryOptions;
             return this;
         }
 
+        /**
+         * Builds an {@link AlloyDBEmbeddingStore} store with the configuration applied to this builder.
+         * @return A new {@link AlloyDBEmbeddingStore} instance
+         */
         public AlloyDBEmbeddingStore build() {
             return new AlloyDBEmbeddingStore(this);
         }

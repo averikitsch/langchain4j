@@ -5,6 +5,7 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import java.util.List;
 
+/** Configuration to setup embedding store */
 public class EmbeddingStoreConfig {
 
     private final String tableName;
@@ -21,19 +22,7 @@ public class EmbeddingStoreConfig {
     /**
      * create a non-default VectorStore table
      *
-     * @param builder, Builder instance containing the necessary data to
-     * construct tableName (Required) the table name to create - does not append
-     * a suffix or prefix! vectorSize (Required) create a vector column with
-     * custom vector size schemaName (Default: "public") The schema name
-     * contentColumn (Default: "content") create the content column with custom
-     * name embeddingColumn (Default: "embedding") create the embedding column
-     * with custom name idColumn (Optional, Default: "langchain_id") Column to
-     * store ids. metadataColumns list of SQLAlchemy Columns to create for
-     * custom metadata metadataJsonColumn (Default: "langchain_metadata") the
-     * column to store extra metadata in overwriteExisting (Default: False)
-     * boolean for dropping table before insertion storeMetadata (Default:
-     * False) boolean to store extra metadata in metadata column if not
-     * described in “metadata” field list
+     * @param builder builder
      */
     private EmbeddingStoreConfig(Builder builder) {
         ensureNotBlank(builder.tableName, "tableName");
@@ -50,46 +39,88 @@ public class EmbeddingStoreConfig {
         this.vectorSize = builder.vectorSize;
     }
 
+    /**
+     * get table name
+     * @return table to be used as embedding store
+     */
     public String getTableName() {
         return tableName;
     }
 
+    /**
+     * get vector size
+     * @return embedding vector size
+     */
     public Integer getVectorSize() {
         return vectorSize;
     }
 
+    /**
+     * get schema name
+     * @return schema for embedding store table
+     */
     public String getSchemaName() {
         return schemaName;
     }
 
+    /**
+     * get content column name
+     * @return name of the embedding store's content column
+     */
     public String getContentColumn() {
         return contentColumn;
     }
 
+    /**
+     * get embedding column
+     * @return name of the embedding store's embedding column
+     */
     public String getEmbeddingColumn() {
         return embeddingColumn;
     }
-
+    /**
+     * get id column
+     * @return name of the embedding store's id column
+     */
     public String getIdColumn() {
         return idColumn;
     }
 
+    /**
+     * get metadata columns
+     * @return list of {@link MetadataColumn}
+     */
     public List<MetadataColumn> getMetadataColumns() {
         return metadataColumns;
     }
 
+    /**
+     * get metadata json column
+     * @return name of the embedding store's metadata json column
+     */
     public String getMetadataJsonColumn() {
         return metadataJsonColumn;
     }
 
+    /**
+     * get override existing option
+     * @return override existing option
+     */
     public Boolean getOverwriteExisting() {
         return overwriteExisting;
     }
 
+    /**
+     * get store metadata option
+     * @return store metadata option
+     */
     public Boolean getStoreMetadata() {
         return storeMetadata;
     }
 
+    /**
+     * Builder which configures and creates instances of {@link EmbeddingStoreConfig}.
+     */
     public static class Builder {
 
         private final String tableName;
@@ -104,7 +135,6 @@ public class EmbeddingStoreConfig {
         private Boolean storeMetadata = false;
 
         /**
-         * @return builder instance
          * @param tableName (Required) the table name to create - does not
          * append a suffix or prefix!
          * @param vectorSize (Required) create a vector column with custom
@@ -117,6 +147,7 @@ public class EmbeddingStoreConfig {
 
         /**
          * @param schemaName (Default: "public") The schema name
+         * @return this builder
          */
         public Builder schemaName(String schemaName) {
             this.schemaName = schemaName;
@@ -126,6 +157,8 @@ public class EmbeddingStoreConfig {
         /**
          * @param contentColumn (Default: "content") create the content column
          * with custom name
+         * @return this builder
+         *
          */
         public Builder contentColumn(String contentColumn) {
             this.contentColumn = contentColumn;
@@ -135,6 +168,7 @@ public class EmbeddingStoreConfig {
         /**
          * @param embeddingColumn (Default: "embedding") create the embedding
          * column with custom name
+         * @return this builder
          */
         public Builder embeddingColumn(String embeddingColumn) {
             this.embeddingColumn = embeddingColumn;
@@ -144,6 +178,7 @@ public class EmbeddingStoreConfig {
         /**
          * @param idColumn (Optional, Default: "langchain_id") Column to store
          * ids.
+         * @return this builder
          */
         public Builder idColumn(String idColumn) {
             this.idColumn = idColumn;
@@ -153,6 +188,7 @@ public class EmbeddingStoreConfig {
         /**
          * @param metadataColumns list of SQLAlchemy Columns to create for
          * custom metadata
+         * @return this builder
          */
         public Builder metadataColumns(List<MetadataColumn> metadataColumns) {
             this.metadataColumns = metadataColumns;
@@ -162,6 +198,8 @@ public class EmbeddingStoreConfig {
         /**
          * @param metadataJsonColumn (Default: "langchain_metadata") the column
          * to store extra metadata in
+         * @return this builder
+         *
          */
         public Builder metadataJsonColumn(String metadataJsonColumn) {
             this.metadataJsonColumn = metadataJsonColumn;
@@ -171,6 +209,8 @@ public class EmbeddingStoreConfig {
         /**
          * @param overwriteExisting (Default: False) boolean for dropping table
          * before insertion
+         * @return this builder
+         *
          */
         public Builder overwriteExisting(Boolean overwriteExisting) {
             this.overwriteExisting = overwriteExisting;
@@ -180,12 +220,18 @@ public class EmbeddingStoreConfig {
         /**
          * @param storeMetadata (Default: False) boolean to store extra metadata
          * in metadata column if not described in “metadata” field list
+         * @return this builder
+         *
          */
         public Builder storeMetadata(Boolean storeMetadata) {
             this.storeMetadata = storeMetadata;
             return this;
         }
 
+        /**
+         * Builds an {@link EmbeddingStoreConfig} with the configuration applied to this builder.
+         * @return A new {@link EmbeddingStoreConfig} instance
+         */
         public EmbeddingStoreConfig build() {
             return new EmbeddingStoreConfig(this);
         }

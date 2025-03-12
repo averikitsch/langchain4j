@@ -19,6 +19,15 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * AlloyDBEngine
+ * <p>
+ * Instances of this store are created by configuring a builder:
+ * </p>{@code
+ * AlloyDBEngine engine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database).build();
+ * }
+ * Uses HikariCP as a DataSource. A connection pool tath will avoid the latency of repeatedly creating new database connections.
+ */
 public class AlloyDBEngine {
 
     private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
@@ -27,7 +36,7 @@ public class AlloyDBEngine {
     /**
      * Constructor for AlloyDBEngine
      *
-     * @param builder, Builder instance containing the necessary data to
+     * @param builder builder.
      */
     public AlloyDBEngine(Builder builder) {
         Boolean enableIAMAuth;
@@ -97,6 +106,11 @@ public class AlloyDBEngine {
         }
     }
 
+    /**
+     * Gets a Connection from the datasource
+     * @return A connection with the database specified in {@link AlloyDBEngine}
+     * @throws SQLException if database error occurs
+     */
     public Connection getConnection() throws SQLException {
         Connection connection = dataSource.getConnection();
         return connection;
@@ -150,10 +164,16 @@ public class AlloyDBEngine {
         }
     }
 
+    /**
+     * to be documented
+     */
     public void initChatHistoryTable() {
         // to be implemented
     }
 
+    /**
+     * Builder which configures and creates instances of {@link AlloyDBEngine}.
+     */
     public static class Builder {
 
         private final String projectId;
@@ -168,13 +188,12 @@ public class AlloyDBEngine {
         private String iamAccountEmail;
 
         /**
-         * @return builder instance
+         * Constructor for builder
          * @param projectId (Required) AlloyDB project id
          * @param region (Required) AlloyDB cluster region
          * @param cluster (Required) AlloyDB cluster
          * @param instance (Required) AlloyDB instance
          * @param database (Required) AlloyDB database
-         *
          */
         public Builder(String projectId, String region, String cluster, String instance, String database) {
             this.projectId = projectId;
@@ -186,6 +205,7 @@ public class AlloyDBEngine {
 
         /**
          * @param user (Optional) AlloyDB database user
+         * @return this builder
          */
         public Builder user(String user) {
             this.user = user;
@@ -194,6 +214,7 @@ public class AlloyDBEngine {
 
         /**
          * @param password (Optional) AlloyDB database password
+         * @return this builder
          */
         public Builder password(String password) {
             this.password = password;
@@ -202,6 +223,7 @@ public class AlloyDBEngine {
 
         /**
          * @param ipType (Optional) type of IP to be used (PUBLIC, PSC)
+         * @return this builder
          */
         public Builder ipType(String ipType) {
             this.ipType = ipType;
@@ -210,12 +232,17 @@ public class AlloyDBEngine {
 
         /**
          * @param iamAccountEmail (Optional) IAM account email
+         * @return this builder
          */
         public Builder iamAccountEmail(String iamAccountEmail) {
             this.iamAccountEmail = iamAccountEmail;
             return this;
         }
 
+        /**
+         * Builds an {@link AlloyDBEngine} store with the configuration applied to this builder.
+         * @return A new {@link AlloyDBEngine} instance
+         */
         public AlloyDBEngine build() {
             return new AlloyDBEngine(this);
         }
