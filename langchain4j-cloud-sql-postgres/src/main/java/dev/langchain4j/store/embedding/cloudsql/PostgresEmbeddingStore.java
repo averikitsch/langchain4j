@@ -5,7 +5,7 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.*;
+// import static dev.langchain4j.internal.ValidationUtils.*;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
@@ -45,7 +45,8 @@ import org.slf4j.LoggerFactory;
 
 public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
 
-    private static final Logger log = LoggerFactory.getLogger(PostgresEmbeddingStore.class.getName());
+    private static final Logger log =
+            LoggerFactory.getLogger(PostgresEmbeddingStore.class.getName());
     private final PostgresEngine engine;
     private final String tableName;
     private String schemaName;
@@ -53,9 +54,6 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
     private String embeddingColumn;
     private String idColumn;
     private List<String> metadataColumns;
-    private final Integer k;
-    private final Integer fetchK;
-    private final Double lambdaMult;
 
     private final CloudsqlFilterMapper FILTER_MAPPER = new CloudsqlFilterMapper();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
@@ -80,9 +78,6 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.queryOptions = builder.queryOptions;
         this.metadataJsonColumn = builder.metadataJsonColumn;
         this.distanceStrategy = builder.distanceStrategy;
-        this.k = builder.k;
-        this.fetchK = builder.fetchK;
-        this.lambdaMult = builder.lambdaMult;
         // check columns exist in the table
         verifyEmbeddingStoreColumns(builder.ignoreMetadataColumnNames);
     }
@@ -112,19 +107,22 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
                 throw new IllegalStateException("Id column, " + idColumn + ", does not exist.");
             }
             if (!allColumns.containsKey(contentColumn)) {
-                throw new IllegalStateException("Content column, " + contentColumn + ", does not exist.");
+                throw new IllegalStateException(
+                        "Content column, " + contentColumn + ", does not exist.");
             }
             if (!allColumns.get(contentColumn).equalsIgnoreCase("text")
                     || !allColumns.get(contentColumn).contains("char")) {
-                throw new IllegalStateException("Content column, is type "
-                        + allColumns.get(contentColumn)
-                        + ". It must be a type of character string.");
+                throw new IllegalStateException(
+                        "Content column, is type " + allColumns.get(contentColumn)
+                                + ". It must be a type of character string.");
             }
             if (!allColumns.containsKey(embeddingColumn)) {
-                throw new IllegalStateException("Embedding column, " + embeddingColumn + ", does not exist.");
+                throw new IllegalStateException(
+                        "Embedding column, " + embeddingColumn + ", does not exist.");
             }
             if (!allColumns.get(embeddingColumn).equalsIgnoreCase("USER-DEFINED")) {
-                throw new IllegalStateException("Embedding column, " + embeddingColumn + ", is not type Vector.");
+                throw new IllegalStateException(
+                        "Embedding column, " + embeddingColumn + ", is not type Vector.");
             }
             if (!allColumns.containsKey(metadataJsonColumn)) {
                 metadataJsonColumn = null;
@@ -132,14 +130,15 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             for (String metadataColumn : metadataColumns) {
                 if (!allColumns.containsKey(metadataColumn)) {
-                    throw new IllegalStateException("Metadata column, " + metadataColumn + ", does not exist.");
+                    throw new IllegalStateException(
+                            "Metadata column, " + metadataColumn + ", does not exist.");
                 }
             }
 
             if (ignoredColumns != null && !ignoredColumns.isEmpty()) {
 
-                Map<String, String> allColumnsCopy =
-                        allColumns.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                Map<String, String> allColumnsCopy = allColumns.entrySet().stream()
+                        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
                 ignoredColumns.add(idColumn);
                 ignoredColumns.add(contentColumn);
                 ignoredColumns.add(embeddingColumn);
@@ -152,9 +151,8 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
 
         } catch (SQLException ex) {
-            throw new RuntimeException(
-                    "Exception caught when verifying vector store table: \"" + schemaName + "\".\"" + tableName + "\"",
-                    ex);
+            throw new RuntimeException("Exception caught when verifying vector store table: \""
+                    + schemaName + "\".\"" + tableName + "\"", ex);
         }
     }
 
@@ -224,14 +222,15 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     @Override
-    public void addAll(List<String> ids, List<Embedding> embeddings, List<TextSegment> textSegments) {
+    public void addAll(List<String> ids, List<Embedding> embeddings,
+            List<TextSegment> textSegments) {
         if (ids.size() != embeddings.size() || embeddings.size() != textSegments.size()) {
             throw new IllegalArgumentException(
                     "List parameters ids and embeddings and textSegments shouldn't be different sizes!");
         }
         try (Connection connection = engine.getConnection()) {
-            String metadataColumnNames =
-                    metadataColumns.stream().map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
+            String metadataColumnNames = metadataColumns.stream()
+                    .map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
 
             // idColumn, contentColumn and embeddedColumn
             int totalColumns = 3;
@@ -252,8 +251,9 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
 
             String query = String.format(
-                    "INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)",
-                    schemaName, tableName, idColumn, contentColumn, embeddingColumn, metadataColumnNames, placeholders);
+                    "INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)", schemaName,
+                    tableName, idColumn, contentColumn, embeddingColumn, metadataColumnNames,
+                    placeholders);
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 for (int i = 0; i < ids.size(); i++) {
                     String id = ids.get(i);
@@ -262,8 +262,9 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
                     String text = textSegment != null ? textSegment.text() : null;
                     // assume metadata is always present
                     // langchain4j/langchain4j-core/src/main/java/dev/langchain4j/data/segment/TextSegment.java L30
-                    Map<String, Object> embeddedMetadataCopy = textSegment.metadata().toMap().entrySet().stream()
-                            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                    Map<String, Object> embeddedMetadataCopy =
+                            textSegment.metadata().toMap().entrySet().stream()
+                                    .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
                     preparedStatement.setString(1, id);
                     preparedStatement.setObject(2, embedding);
                     preparedStatement.setString(3, text);
@@ -271,15 +272,17 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
                     if (embeddedMetadataCopy != null && !embeddedMetadataCopy.isEmpty()) {
                         for (; j < metadataColumns.size(); j++) {
                             if (embeddedMetadataCopy.containsKey(metadataColumns.get(j))) {
-                                preparedStatement.setObject(j, embeddedMetadataCopy.remove(metadataColumns.get(j)));
+                                preparedStatement.setObject(j,
+                                        embeddedMetadataCopy.remove(metadataColumns.get(j)));
                             } else {
                                 preparedStatement.setObject(j, null);
                             }
                         }
                         if (isNotNullOrEmpty(metadataJsonColumn)) {
                             // metadataJsonColumn should be the last column left
-                            preparedStatement.setObject(
-                                    j, OBJECT_MAPPER.writeValueAsString(embeddedMetadataCopy), Types.OTHER);
+                            preparedStatement.setObject(j,
+                                    OBJECT_MAPPER.writeValueAsString(embeddedMetadataCopy),
+                                    Types.OTHER);
                         }
                     } else {
                         for (; j < metadataColumns.size(); j++) {
@@ -294,13 +297,8 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
 
         } catch (SQLException ex) {
-            throw new RuntimeException(
-                    "Exception caught when inserting into vector store table: \""
-                            + schemaName
-                            + "\".\""
-                            + tableName
-                            + "\"",
-                    ex);
+            throw new RuntimeException("Exception caught when inserting into vector store table: \""
+                    + schemaName + "\".\"" + tableName + "\"", ex);
         }
     }
 
@@ -310,21 +308,20 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new IllegalArgumentException("ids must not be null or empty");
         }
 
-        String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s IN (?)", schemaName, tableName, idColumn);
+        String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s IN (?)", schemaName,
+                tableName, idColumn);
 
         try (Connection conn = engine.getConnection()) {
             try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
-                Array array = conn.createArrayOf(
-                        "uuid", ids.stream().map(UUID::fromString).toArray());
+                Array array =
+                        conn.createArrayOf("uuid", ids.stream().map(UUID::fromString).toArray());
                 preparedStatement.setArray(1, array);
                 preparedStatement.executeUpdate();
             }
         } catch (SQLException ex) {
-            log.error(
-                    String.format(
-                            "Exception caught when inserting into vector store table: \"%s\".\"%s\"",
-                            schemaName, tableName),
-                    ex);
+            log.error(String.format(
+                    "Exception caught when inserting into vector store table: \"%s\".\"%s\"",
+                    schemaName, tableName), ex);
             throw new RuntimeException(ex);
         }
     }
@@ -339,29 +336,21 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
             columns.add(metadataJsonColumn);
         }
 
-        String columnNames =
-                columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
+        String columnNames = columns.stream().map(c -> String.format("\"%s\"", c))
+                .collect(Collectors.joining(", "));
 
         String filterString = FILTER_MAPPER.map(request.filter());
 
-        String whereClause = isNotNullOrBlank(filterString) ? String.format("WHERE %s", filterString) : "";
+        String whereClause =
+                isNotNullOrBlank(filterString) ? String.format("WHERE %s", filterString) : "";
 
-        String vector =
-                String.format("'%s'", Arrays.toString(request.queryEmbedding().vector()));
+        String vector = String.format("'%s'", Arrays.toString(request.queryEmbedding().vector()));
 
         String query = String.format(
                 "SELECT %s, %s(%s, %s) as distance FROM \"%s\".\"%s\" %s ORDER BY %s %s %s LIMIT %d;",
-                columnNames,
-                distanceStrategy.getSearchFunction(),
-                embeddingColumn,
-                vector,
-                schemaName,
-                tableName,
-                whereClause,
-                embeddingColumn,
-                distanceStrategy.getOperator(),
-                vector,
-                request.maxResults());
+                columnNames, distanceStrategy.getSearchFunction(), embeddingColumn, vector,
+                schemaName, tableName, whereClause, embeddingColumn, distanceStrategy.getOperator(),
+                vector, request.maxResults());
 
         List<EmbeddingMatch<TextSegment>> embeddingMatches = new ArrayList<>();
 
@@ -389,8 +378,10 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
                     }
 
                     if (isNotNullOrBlank(metadataJsonColumn)) {
-                        String metadataJsonString = getOrDefault(resultSet.getString(metadataJsonColumn), "{}");
-                        Map<String, Object> metadataJsonMap = OBJECT_MAPPER.readValue(metadataJsonString, Map.class);
+                        String metadataJsonString =
+                                getOrDefault(resultSet.getString(metadataJsonColumn), "{}");
+                        Map<String, Object> metadataJsonMap =
+                                OBJECT_MAPPER.readValue(metadataJsonString, Map.class);
                         metadataMap.putAll(metadataJsonMap);
                     }
 
@@ -398,14 +389,15 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     TextSegment embedded = new TextSegment(embeddedText, metadata);
 
-                    embeddingMatches.add(new EmbeddingMatch<>(distance, embeddingId, embedding, embedded));
+                    embeddingMatches
+                            .add(new EmbeddingMatch<>(distance, embeddingId, embedding, embedded));
                 }
             } catch (JsonProcessingException ex) {
                 throw new RuntimeException("Exception caught when processing JSON metadata", ex);
             }
         } catch (SQLException ex) {
-            throw new RuntimeException(
-                    "Exception caught when searching in store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
+            throw new RuntimeException("Exception caught when searching in store table: \""
+                    + schemaName + "\".\"" + tableName + "\"", ex);
         }
         return new EmbeddingSearchResult<>(embeddingMatches);
     }
@@ -423,9 +415,6 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         private String metadataJsonColumn = "langchain_metadata";
         private List<String> ignoreMetadataColumnNames = new ArrayList<>();
         private DistanceStrategy distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
-        private Integer k = 4;
-        private Integer fetchK = 20;
-        private Double lambdaMult = 0.5;
         private QueryOptions queryOptions;
 
         /**
@@ -501,57 +490,16 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
             return this;
         }
 
-        /**
-         * @param distanceStrategy (Defaults: COSINE_DISTANCE) Distance strategy to use for vector
-         *     similarity search * @return this builder
-         */
-        public Builder distanceStrategy(DistanceStrategy distanceStrategy) {
-            this.distanceStrategy = distanceStrategy;
-            return this;
-        }
-
-        /**
-         * @param k (Defaults: 4) Number of Documents to return from search * @return this builder
-         */
-        public Builder k(Integer k) {
-            this.k = k;
-            return this;
-        }
-
-        /**
-         * @param fetchK (Defaults: 20) Number of Documents to fetch to pass to MMR algorithm * @return
-         *     this builder
-         */
-        public Builder fetchK(Integer fetchK) {
-            this.fetchK = fetchK;
-            return this;
-        }
-
-        /**
-         * @param queryOptions (Optional) QueryOptions class with vector search parameters * @return
-         *     this builder
-         */
         public Builder queryOptions(QueryOptions queryOptions) {
             this.queryOptions = queryOptions;
             return this;
         }
 
-        /**
-         * @param lambdaMult (Defaults: 0.5): Number between 0 and 1 that determines the degree of
-         *     diversity among the results with 0 corresponding to maximum diversity and 1 to minimum
-         *     diversity * @return this builder
-         */
-        public Builder lambdaMult(Double lambdaMult) {
-            this.lambdaMult = lambdaMult;
+        public Builder distanceStrategy(DistanceStrategy distanceStrategy) {
+            this.distanceStrategy = distanceStrategy;
             return this;
         }
 
-        /**
-         * Builds an {@link PostgresEmbeddingStore} store with the configuration applied to this
-         * builder.
-         *
-         * @return A new {@link PostgresEmbeddingStore} instance
-         */
         public PostgresEmbeddingStore build() {
             return new PostgresEmbeddingStore(this);
         }
