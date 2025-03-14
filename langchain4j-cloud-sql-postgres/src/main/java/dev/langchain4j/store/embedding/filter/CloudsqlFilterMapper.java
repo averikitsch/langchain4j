@@ -16,16 +16,8 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Maps {@link Filter} objects into AlloyDB filter strings.
- */
-public class AlloyDBFilterMapper {
+public class CloudsqlFilterMapper {
 
-    /**
-     * Maps {@link Filter} into a string
-     * @param filter the filter to be mapped
-     * @return AlloyDB compatible filter string
-     */
     public String map(Filter filter) {
         if (filter instanceof IsEqualTo isEqualTo) {
             return mapEqual(isEqualTo);
@@ -52,8 +44,8 @@ public class AlloyDBFilterMapper {
         } else if (filter instanceof Or or) {
             return mapOr(or);
         } else {
-            String filterClass = filter != null ? filter.getClass().getName() : "null";
-            throw new UnsupportedOperationException("Unsupported filter type: " + filterClass);
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
         }
     }
 

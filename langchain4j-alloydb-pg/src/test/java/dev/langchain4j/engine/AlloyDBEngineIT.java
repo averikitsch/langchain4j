@@ -1,5 +1,10 @@
 package dev.langchain4j.engine;
 
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import dev.langchain4j.utils.AlloyDBTestUtils;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -7,16 +12,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import static dev.langchain4j.internal.Utils.randomUUID;
-import dev.langchain4j.utils.AlloyDBTestUtils;
 
 public class AlloyDBEngineIT {
 
@@ -48,22 +47,33 @@ public class AlloyDBEngineIT {
         password = System.getenv("ALLOYDB_PASSWORD");
         iamEmail = System.getenv("ALLOYDB_IAM_EMAIL");
 
-        engine = new AlloyDBEngine.Builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).user(user).password(password).ipType("PUBLIC").build();
+        engine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
+                .user(user)
+                .password(password)
+                .ipType("public")
+                .build();
 
         defaultConnection = engine.getConnection();
 
-        defaultConnection.createStatement().executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS \"%s\"", CUSTOM_SCHEMA));
+        defaultConnection
+                .createStatement()
+                .executeUpdate(String.format("CREATE SCHEMA IF NOT EXISTS \"%s\"", CUSTOM_SCHEMA));
 
-        defaultParameters = EmbeddingStoreConfig.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).build();
-
+        defaultParameters = new EmbeddingStoreConfig.Builder(TABLE_NAME, VECTOR_SIZE).build();
     }
 
     @AfterEach
     public void afterEach() throws SQLException {
         defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
-        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", CUSTOM_TABLE_NAME));
-        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\".\"%s\"", CUSTOM_SCHEMA, TABLE_NAME));
-        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\".\"%s\"", CUSTOM_SCHEMA, CUSTOM_TABLE_NAME));
+        defaultConnection
+                .createStatement()
+                .executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", CUSTOM_TABLE_NAME));
+        defaultConnection
+                .createStatement()
+                .executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\".\"%s\"", CUSTOM_SCHEMA, TABLE_NAME));
+        defaultConnection
+                .createStatement()
+                .executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\".\"%s\"", CUSTOM_SCHEMA, CUSTOM_TABLE_NAME));
     }
 
     @AfterAll
@@ -83,7 +93,6 @@ public class AlloyDBEngineIT {
         expectedNames.add("embedding");
 
         AlloyDBTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedNames);
-
     }
 
     @Test
@@ -91,7 +100,10 @@ public class AlloyDBEngineIT {
         // default options
         engine.initVectorStoreTable(defaultParameters);
         // custom
-        EmbeddingStoreConfig overwritten = EmbeddingStoreConfig.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).contentColumn("overwritten").overwriteExisting(true).build();
+        EmbeddingStoreConfig overwritten = new EmbeddingStoreConfig.Builder(TABLE_NAME, VECTOR_SIZE)
+                .contentColumn("overwritten")
+                .overwriteExisting(true)
+                .build();
         engine.initVectorStoreTable(overwritten);
 
         Set<String> expectedColumns = new HashSet<>();
@@ -100,7 +112,6 @@ public class AlloyDBEngineIT {
         expectedColumns.add("embedding");
 
         AlloyDBTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedColumns);
-
     }
 
     @Test
@@ -109,8 +120,16 @@ public class AlloyDBEngineIT {
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
         metadataColumns.add(new MetadataColumn("source", "TEXT", false));
 
-        EmbeddingStoreConfig customParams = EmbeddingStoreConfig.builder().tableName(CUSTOM_TABLE_NAME).vectorSize(1000).schemaName(CUSTOM_SCHEMA).contentColumn("custom_content_column")
-                .embeddingColumn("custom_embedding_column").idColumn("custom_embedding_id_column").metadataColumns(metadataColumns).metadataJsonColumn("custom_metadata_json_column").overwriteExisting(false).storeMetadata(true).build();
+        EmbeddingStoreConfig customParams = new EmbeddingStoreConfig.Builder(CUSTOM_TABLE_NAME, 1000)
+                .schemaName(CUSTOM_SCHEMA)
+                .contentColumn("custom_content_column")
+                .embeddingColumn("custom_embedding_column")
+                .idColumn("custom_embedding_id_column")
+                .metadataColumns(metadataColumns)
+                .metadataJsonColumn("custom_metadata_json_column")
+                .overwriteExisting(false)
+                .storeMetadata(true)
+                .build();
         engine.initVectorStoreTable(customParams);
         Set<String> expectedColumns = new HashSet<>();
         expectedColumns.add("custom_embedding_id_column");
@@ -121,24 +140,30 @@ public class AlloyDBEngineIT {
         expectedColumns.add("custom_metadata_json_column");
 
         AlloyDBTestUtils.verifyColumns(defaultConnection, CUSTOM_SCHEMA, CUSTOM_TABLE_NAME, expectedColumns);
-
     }
 
     @Test
     void create_from_existing_fails_if_table_not_present() {
-        EmbeddingStoreConfig initParameters = EmbeddingStoreConfig.builder().tableName(TABLE_NAME).vectorSize(VECTOR_SIZE).overwriteExisting(true).storeMetadata(false).build();
+        EmbeddingStoreConfig initParameters = new EmbeddingStoreConfig.Builder(TABLE_NAME, VECTOR_SIZE)
+                .overwriteExisting(true)
+                .storeMetadata(false)
+                .build();
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             engine.initVectorStoreTable(initParameters);
         });
 
-        assertThat(exception.getMessage()).isEqualTo(String.format("Failed to initialize vector store table: \"public\".\"%s\"", TABLE_NAME));
-        assertThat(exception.getCause().getMessage()).isEqualTo(String.format("ERROR: table \"%s\" does not exist", TABLE_NAME));
+        assertThat(exception.getMessage())
+                .isEqualTo(String.format("Failed to initialize vector store table: \"public\".\"%s\"", TABLE_NAME));
+        assertThat(exception.getCause().getMessage())
+                .isEqualTo(String.format("ERROR: table \"%s\" does not exist", TABLE_NAME));
     }
 
     @Test
     void create_fails_when_table_present_and_overwrite_false() {
-        EmbeddingStoreConfig initParameters = EmbeddingStoreConfig.builder().tableName(CUSTOM_TABLE_NAME).vectorSize(VECTOR_SIZE).storeMetadata(false).build();
+        EmbeddingStoreConfig initParameters = new EmbeddingStoreConfig.Builder(CUSTOM_TABLE_NAME, VECTOR_SIZE)
+                .storeMetadata(false)
+                .build();
 
         engine.initVectorStoreTable(initParameters);
 
@@ -146,15 +171,22 @@ public class AlloyDBEngineIT {
             engine.initVectorStoreTable(initParameters);
         });
 
-        assertThat(exception.getMessage()).isEqualTo(String.format("Failed to initialize vector store table: \"public\".\"%s\"", CUSTOM_TABLE_NAME));
+        assertThat(exception.getMessage())
+                .isEqualTo(
+                        String.format("Failed to initialize vector store table: \"public\".\"%s\"", CUSTOM_TABLE_NAME));
         // table name is truncated in PSQL exception
-        assertThat(exception.getCause().getMessage()).isEqualTo(String.format("ERROR: relation \"%s\" already exists", CUSTOM_TABLE_NAME.substring(0, CUSTOM_TABLE_NAME.length() - 2)));
+        assertThat(exception.getCause().getMessage())
+                .isEqualTo(String.format(
+                        "ERROR: relation \"%s\" already exists",
+                        CUSTOM_TABLE_NAME.substring(0, CUSTOM_TABLE_NAME.length() - 2)));
     }
 
     @Test
     void create_engine_with_iam_auth() throws SQLException {
-        AlloyDBEngine iam_engine = new AlloyDBEngine.Builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).ipType("PUBLIC").iamAccountEmail(iamEmail).build();
-        try (Connection connection = iam_engine.getConnection();) {
+        AlloyDBEngine iamEngine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
+                .iamAccountEmail(iamEmail)
+                .build();
+        try (Connection connection = iamEngine.getConnection(); ) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
             assertThat(rs.getInt(1)).isEqualTo(1);
@@ -163,12 +195,11 @@ public class AlloyDBEngineIT {
 
     @Test
     void create_engine_with_get_iam_email() throws SQLException {
-        AlloyDBEngine iam_engine = new AlloyDBEngine.Builder().projectId(projectId).region(region).cluster(cluster).instance(instance).database(database).ipType("PUBLIC").build();
-        try (Connection connection = iam_engine.getConnection();) {
+        AlloyDBEngine iamEngine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database).build();
+        try (Connection connection = iamEngine.getConnection(); ) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
             assertThat(rs.getInt(1)).isEqualTo(1);
         }
     }
-
 }
