@@ -11,6 +11,7 @@ import com.google.cloud.alloydb.ConnectorRegistry;
 import com.google.cloud.alloydb.RefreshStrategy;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.pgvector.PGvector;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
@@ -164,6 +165,7 @@ public class AlloyDBEngine {
         try (Connection connection = getConnection(); ) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
+            PGvector.addVectorType(connection);
 
             if (embeddingStoreConfig.getOverwriteExisting()) {
                 statement.executeUpdate(String.format(
