@@ -232,7 +232,12 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
                 ResultSet resultSet = statement.executeQuery(query);
                 while (resultSet.next()) {
-                    double distance = resultSet.getDouble("distance");
+                    double score = calculateRelevanceScore(resultSet.getDouble("distance"));
+
+                    if (score < request.minScore()) {
+                        continue;
+                    }
+
                     String embeddingId = resultSet.getString(idColumn);
 
                     PGvector pgVector = (PGvector) resultSet.getObject(embeddingColumn);
@@ -256,7 +261,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     TextSegment embedded = new TextSegment(embeddedText, metadata);
 
-                    embeddingMatches.add(new EmbeddingMatch<>(distance, embeddingId, embedding, embedded));
+                    embeddingMatches.add(new EmbeddingMatch<>(score, embeddingId, embedding, embedded));
                 }
             } catch (JsonProcessingException ex) {
                 throw new RuntimeException("Exception caught when processing JSON metadata", ex);
@@ -373,6 +378,28 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     "Exception caught when inserting into vector store table: \"" + schemaName + "\".\"" + tableName
                             + "\"",
                     ex);
+        }
+    }
+
+    private double calculateRelevanceScore(double distance) {
+        switch (distanceStrategy.name()) {
+            case "EUCLIDEAN" -> {
+                return (1d - (distance / Math.sqrt(2)));
+            }
+            case "COSINE_DISTANCE" -> {
+                return (1d - distance);
+            }
+            case "INNER_PRODUCT" -> {
+                if (distance > 0) {
+                    return (1d - distance);
+                }
+                return (-1d * distance);
+            }
+            default -> {
+                throw new UnsupportedOperationException(String.format(
+                        "Unable to calculate relevance score for search function: %s ",
+                        distanceStrategy.getSearchFunction()));
+            }
         }
     }
 

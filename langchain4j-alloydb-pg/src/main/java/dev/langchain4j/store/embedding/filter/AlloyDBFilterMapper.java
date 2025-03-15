@@ -27,6 +27,9 @@ public class AlloyDBFilterMapper {
      * @return AlloyDB compatible filter string
      */
     public String map(Filter filter) {
+        if (filter == null) {
+            return "";
+        }
         if (filter instanceof IsEqualTo isEqualTo) {
             return mapEqual(isEqualTo);
         } else if (filter instanceof IsNotEqualTo isNotEqualTo) {
@@ -52,8 +55,8 @@ public class AlloyDBFilterMapper {
         } else if (filter instanceof Or or) {
             return mapOr(or);
         } else {
-            String filterClass = filter != null ? filter.getClass().getName() : "null";
-            throw new UnsupportedOperationException("Unsupported filter type: " + filterClass);
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
         }
     }
 
