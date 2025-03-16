@@ -1,21 +1,20 @@
 package dev.langchain4j.data.document.loader.alloydb;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import dev.langchain4j.data.document.Document;
+import dev.langchain4j.engine.AlloyDBEngine;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import dev.langchain4j.data.document.Document;
-import dev.langchain4j.engine.AlloyDBEngine;
 
 /**
  * This class represents unit tests for {@link AlloyDBLoaderIT}.
@@ -79,7 +78,7 @@ public class AlloyDBLoaderIT {
 
     @AfterAll
     public static void afterAll() throws SQLException {
-        connection.close();
+        engine.close();
     }
 
     @Test
