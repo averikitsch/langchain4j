@@ -22,18 +22,21 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
             new PostgreSQLContainer<>("pgvector/pgvector:pg15").withCommand("postgres -c max_connections=100");
 
     final String tableName = "test" + nextInt(2000, 3000);
-    AlloyDBEngine engine = new AlloyDBEngine.Builder()
-            .host(pgVector.getHost())
-            .port(pgVector.getFirstMappedPort())
-            .user("test")
-            .password("test")
-            .database("test")
-            .build();
+    AlloyDBEngine engine;
     EmbeddingStore<TextSegment> embeddingStore;
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     @Override
     protected void ensureStoreIsReady() {
+        if (engine == null) {
+            engine = new AlloyDBEngine.Builder()
+                    .host(pgVector.getHost())
+                    .port(pgVector.getFirstMappedPort())
+                    .user("test")
+                    .password("test")
+                    .database("test")
+                    .build();
+        }
         engine.initVectorStoreTable(new EmbeddingStoreConfig.Builder(tableName, 384)
                 .overwriteExisting(true)
                 .build());

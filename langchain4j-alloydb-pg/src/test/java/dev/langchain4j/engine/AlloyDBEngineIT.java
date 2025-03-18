@@ -41,17 +41,20 @@ public class AlloyDBEngineIT {
     private static String user;
     private static String password;
 
-    private static AlloyDBEngine engine = new AlloyDBEngine.Builder()
-            .host(pgVector.getHost())
-            .port(pgVector.getFirstMappedPort())
-            .user("test")
-            .password("test")
-            .database("test")
-            .build();
+    private static AlloyDBEngine engine;
     private static Connection defaultConnection;
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
+        if (engine == null) {
+            engine = new AlloyDBEngine.Builder()
+                    .host(pgVector.getHost())
+                    .port(pgVector.getFirstMappedPort())
+                    .user("test")
+                    .password("test")
+                    .database("test")
+                    .build();
+        }
         defaultConnection = engine.getConnection();
 
         defaultConnection

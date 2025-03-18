@@ -21,17 +21,20 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
 
     final String tableName = "test" + nextInt(2000, 3000);
-    AlloyDBEngine engine = new AlloyDBEngine.Builder()
-            .host(pgVector.getHost())
-            .port(pgVector.getFirstMappedPort())
-            .user("test")
-            .password("test")
-            .database("test")
-            .build();
+    AlloyDBEngine engine;
     EmbeddingStore<TextSegment> embeddingStore;
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     protected void ensureStoreIsReady() {
+        if (engine == null) {
+            engine = new AlloyDBEngine.Builder()
+                    .host(pgVector.getHost())
+                    .port(pgVector.getFirstMappedPort())
+                    .user("test")
+                    .password("test")
+                    .database("test")
+                    .build();
+        }
         engine.initVectorStoreTable(new EmbeddingStoreConfig.Builder(tableName, 384).build());
 
         embeddingStore = new AlloyDBEmbeddingStore.Builder(engine, tableName)
