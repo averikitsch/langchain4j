@@ -15,11 +15,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * This class represents unit tests for {@link AlloyDBLoaderIT}.
- *
- */
+@Testcontainers
 public class AlloyDBLoaderIT {
 
     private static String projectId;
@@ -35,22 +33,12 @@ public class AlloyDBLoaderIT {
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
-        projectId = System.getenv("ALLOYDB_PROJECT_ID");
-        region = System.getenv("ALLOYDB_REGION");
-        cluster = System.getenv("ALLOYDB_CLUSTER");
-        instance = System.getenv("ALLOYDB_INSTANCE");
-        database = System.getenv("ALLOYDB_DB_NAME");
-        user = System.getenv("ALLOYDB_USER");
-        password = System.getenv("ALLOYDB_PASSWORD");
         engine = new AlloyDBEngine.Builder()
-                .projectId(projectId)
-                .region(region)
-                .cluster(cluster)
-                .instance(instance)
-                .database(database)
-                .user(user)
-                .password(password)
-                .ipType("PUBLIC")
+                .host(pgVector.getHost())
+                .port(pgVector.getFirstMappedPort())
+                .user("test")
+                .password("test")
+                .database("test")
                 .build();
         connection = engine.getConnection();
     }

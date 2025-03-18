@@ -36,13 +36,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import dev.langchain4j.store.embedding.index.DistanceStrategy;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
-
 
 @Testcontainers
 public class AlloyDBEmbeddingStoreConfigIT {
