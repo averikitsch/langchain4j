@@ -12,10 +12,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -183,7 +183,7 @@ public class AlloyDBEngineIT {
                         CUSTOM_TABLE_NAME.substring(0, CUSTOM_TABLE_NAME.length() - 2)));
     }
 
-    @Ignore("Test against Google Cloud only")
+    @Disabled("Test against Google Cloud only")
     @Test
     void create_engine_with_iam_auth() throws SQLException {
         AlloyDBEngine iamEngine = new AlloyDBEngine.Builder()
@@ -201,7 +201,7 @@ public class AlloyDBEngineIT {
         }
     }
 
-    @Ignore("Test against Google Cloud only")
+    @Disabled("Test against Google Cloud only")
     @Test
     void create_engine_with_get_iam_email() throws SQLException {
         AlloyDBEngine iamEngine = new AlloyDBEngine.Builder()

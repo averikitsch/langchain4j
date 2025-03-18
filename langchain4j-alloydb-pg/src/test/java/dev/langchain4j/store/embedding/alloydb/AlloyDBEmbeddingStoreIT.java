@@ -8,14 +8,13 @@ import dev.langchain4j.engine.EmbeddingStoreConfig;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
+public class AlloyDBEmbeddingStoreIT extends S {
 
     @Container
     static PostgreSQLContainer<?> pgVector =
@@ -26,7 +25,7 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     EmbeddingStore<TextSegment> embeddingStore;
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
-    @Override
+    // @Override
     protected void ensureStoreIsReady() {
         if (engine == null) {
             engine = new AlloyDBEngine.Builder()
@@ -48,6 +47,9 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     @Override
     protected EmbeddingStore<TextSegment> embeddingStore() {
+        if (embeddingStore == null) {
+            ensureStoreIsReady();
+        }
         return embeddingStore;
     }
 
