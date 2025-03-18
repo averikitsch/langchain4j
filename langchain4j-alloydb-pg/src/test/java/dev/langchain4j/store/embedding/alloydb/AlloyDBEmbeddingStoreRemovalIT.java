@@ -28,7 +28,7 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     @BeforeAll
-    protected void startEngine() {
+    public static void startEngine() {
         if (engine == null) {
             engine = new AlloyDBEngine.Builder()
                     .host(pgVector.getHost())
@@ -41,7 +41,7 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     }
 
     @AfterAll
-    protected void stopEngine() {
+    public static void stopEngine() {
         engine.close();
     }
 

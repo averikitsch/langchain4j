@@ -29,7 +29,7 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     @BeforeAll
-    protected void startEngine() {
+    public static void startEngine() {
         if (engine == null) {
             engine = new AlloyDBEngine.Builder()
                     .host(pgVector.getHost())
@@ -42,7 +42,7 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @AfterAll
-    protected void stopEngine() {
+    public static void stopEngine() {
         engine.close();
     }
 
