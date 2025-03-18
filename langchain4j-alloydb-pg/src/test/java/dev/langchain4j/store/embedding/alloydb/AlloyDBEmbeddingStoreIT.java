@@ -1,5 +1,10 @@
 package dev.langchain4j.store.embedding.alloydb;
 
+import static dev.langchain4j.store.embedding.filter.Filter.and;
+import static dev.langchain4j.store.embedding.filter.Filter.or;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
 
 import dev.langchain4j.data.document.Metadata;
