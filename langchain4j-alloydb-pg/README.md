@@ -132,6 +132,7 @@ example usage:
 ...
     import dev.langchain4j.store.embedding.alloydb.AlloyDBEmbeddingStore;
 ...
+
     AlloyDBEmbeddingStore store = new AlloyDBEmbeddingStore.Builder(engine, TABLE_NAME)
         .build();
 
@@ -139,27 +140,23 @@ example usage:
     List<Embedding> embeddings = new ArrayList<>();
     List<TextSegment> textSegments = new ArrayList<>();
 
-        for (String text : testTexts) {
-            Map<String, Object> metaMap = new HashMap<>();
-            metaMap.put("string_metadata", "sring");
-            Metadata metadata = new Metadata(metaMap);
-            textSegments.add(new TextSegment(text, metadata));
-            embeddings.add(MyEmbeddingModel.embed(text).content());
-        }
-
-        List<String> ids = store.addAll(embeddings, textSegments);
-        // search for "cat"
-        EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
-                .queryEmbedding(embeddings.get(0))
-                .maxResults(10)
-                .minScore(0.9)
-                .build();
-
-        List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
-
-        // remove cat
-        store.removeAll(singletonList(result.get(0).embeddingId()));
-
+    for (String text : testTexts) {
+        Map<String, Object> metaMap = new HashMap<>();
+        metaMap.put("string_metadata", "sring");
+        Metadata metadata = new Metadata(metaMap);
+        textSegments.add(new TextSegment(text, metadata));
+        embeddings.add(MyEmbeddingModel.embed(text).content());
+    }
+    List<String> ids = store.addAll(embeddings, textSegments);
+    // search for "cat"
+    EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+            .queryEmbedding(embeddings.get(0))
+            .maxResults(10)
+            .minScore(0.9)
+            .build();
+    List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
+    // remove cat
+    store.removeAll(singletonList(result.get(0).embeddingId()));
 
 ```
 
