@@ -194,6 +194,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         columns.add(idColumn);
         columns.add(contentColumn);
         columns.add(embeddingColumn);
+        columns.addAll(metadataColumns)
         if (isNotNullOrBlank(metadataJsonColumn)) {
             columns.add(metadataJsonColumn);
         }
