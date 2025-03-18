@@ -22,8 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
 
-    // Does support WithFilteringIT but EmbeddingStore needs to configure columns with different
-    // data types.
+    // Does support WithFilteringIT but can not handle different age data types.
 
     @Container
     static PostgreSQLContainer<?> pgVector =
