@@ -11,6 +11,7 @@ import com.google.cloud.alloydb.ConnectorRegistry;
 import com.google.cloud.alloydb.RefreshStrategy;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.pgvector.PGvector;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
@@ -153,6 +154,7 @@ public class AlloyDBEngine {
      */
     public Connection getConnection() throws SQLException {
         Connection connection = dataSource.getConnection();
+        PGvector.addVectorType(connection);
         return connection;
     }
 

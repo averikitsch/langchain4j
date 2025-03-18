@@ -3,17 +3,24 @@ package dev.langchain4j.store.embedding.alloydb;
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.utils.AlloyDBTestUtils.randomVector;
+import static dev.langchain4j.utils.AlloyDBTestUtils.randomPGvector;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pgvector.PGvector;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.engine.AlloyDBEngine;
 import dev.langchain4j.engine.EmbeddingStoreConfig;
 import dev.langchain4j.engine.MetadataColumn;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.index.DistanceStrategy;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterAll;
@@ -34,7 +42,8 @@ public class AlloyDBEmbeddingStoreIT {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
     private static final String TABLE_NAME = "JAVA_EMBEDDING_TEST_TABLE";
-    private static final Integer VECTOR_SIZE = 5;
+    private static final Integer VECTOR_SIZE = 384;
+    private static final EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     private static EmbeddingStoreConfig embeddingStoreConfig;
     private static String projectId;
     private static String region;
@@ -60,6 +69,7 @@ public class AlloyDBEmbeddingStoreIT {
 
         engine = new AlloyDBEngine.Builder()
                 .host("127.0.0.1")
+                .port(5433)
                 .database(database)
                 .user(user)
                 .password(password)
@@ -88,6 +98,7 @@ public class AlloyDBEmbeddingStoreIT {
                 metadataColumns.stream().map(c -> c.getName()).collect(Collectors.toList());
 
         store = new AlloyDBEmbeddingStore.Builder(engine, TABLE_NAME)
+                .distanceStrategy(DistanceStrategy.COSINE_DISTANCE)
                 .metadataColumns(metaColumnNames)
                 .build();
     }
@@ -105,8 +116,8 @@ public class AlloyDBEmbeddingStoreIT {
 
     @Test
     void add_single_embedding_to_store() throws SQLException {
-        float[] vector = randomVector(5);
-        Embedding embedding = new Embedding(vector);
+        PGvector vector = randomPGvector(VECTOR_SIZE);
+        Embedding embedding = new Embedding(vector.toArray());
         String id = store.add(embedding);
 
         try (Statement statement = defaultConnection.createStatement(); ) {
@@ -114,19 +125,19 @@ public class AlloyDBEmbeddingStoreIT {
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" = '%s'",
                     embeddingStoreConfig.getEmbeddingColumn(), TABLE_NAME, embeddingStoreConfig.getIdColumn(), id));
             rs.next();
-            String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
-            assertThat(response).isEqualTo(Arrays.toString(vector).replaceAll("\s", ""));
+            PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
+            assertThat(response).isEqualTo(vector);
         }
     }
 
     @Test
     void add_embeddings_list_to_store() throws SQLException {
-        List<String> expectedVectors = new ArrayList<>();
+        List<PGvector> expectedVectors = new ArrayList<>();
         List<Embedding> embeddings = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            float[] vector = randomVector(5);
-            expectedVectors.add(Arrays.toString(vector).replaceAll("\s", ""));
-            embeddings.add(new Embedding(vector));
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            expectedVectors.add(vector);
+            embeddings.add(new Embedding(vector.toArray()));
         }
         List<String> ids = store.addAll(embeddings);
         String stringIds = ids.stream().map(id -> String.format("'%s'", id)).collect(Collectors.joining(","));
@@ -139,7 +150,7 @@ public class AlloyDBEmbeddingStoreIT {
                     embeddingStoreConfig.getIdColumn(),
                     stringIds));
             while (rs.next()) {
-                String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
+                PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
                 assertThat(expectedVectors).contains(response);
             }
         }
@@ -147,8 +158,8 @@ public class AlloyDBEmbeddingStoreIT {
 
     @Test
     void add_single_embedding_with_id_to_store() throws SQLException {
-        float[] vector = randomVector(5);
-        Embedding embedding = new Embedding(vector);
+        PGvector vector = randomPGvector(VECTOR_SIZE);
+        Embedding embedding = new Embedding(vector.toArray());
         String id = randomUUID();
         store.add(id, embedding);
 
@@ -157,15 +168,15 @@ public class AlloyDBEmbeddingStoreIT {
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" = '%s'",
                     embeddingStoreConfig.getEmbeddingColumn(), TABLE_NAME, embeddingStoreConfig.getIdColumn(), id));
             rs.next();
-            String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
-            assertThat(response).isEqualTo(Arrays.toString(vector).replaceAll("\s", ""));
+            PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
+            assertThat(response).isEqualTo(vector);
         }
     }
 
     @Test
     void add_single_embedding_with_content_to_store() throws SQLException, JsonProcessingException {
-        float[] vector = randomVector(5);
-        Embedding embedding = new Embedding(vector);
+        PGvector vector = randomPGvector(VECTOR_SIZE);
+        Embedding embedding = new Embedding(vector.toArray());
 
         Map<String, Object> metaMap = new HashMap<>();
         metaMap.put("string", "s");
@@ -197,8 +208,8 @@ public class AlloyDBEmbeddingStoreIT {
             Map<String, Object> extraMetaMap = new HashMap<>();
             Map<String, Object> metadataJsonMap = null;
             while (rs.next()) {
-                String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
-                assertThat(response).isEqualTo(Arrays.toString(vector).replaceAll("\s", ""));
+                PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
+                assertThat(response).isEqualTo(vector);
                 for (String column : metaMap.keySet()) {
                     if (column.contains("extra")) {
                         extraMetaMap.put(column, metaMap.get(column));
@@ -220,15 +231,15 @@ public class AlloyDBEmbeddingStoreIT {
 
     @Test
     void add_embeddings_list_and_content_list_to_store() throws SQLException, JsonProcessingException {
-        Map<String, Integer> expectedVectorsAndIndexes = new HashMap<>();
+        Map<PGvector, Integer> expectedVectorsAndIndexes = new HashMap<>();
         Map<Integer, Map<String, Object>> metaMaps = new HashMap<>();
         List<Embedding> embeddings = new ArrayList<>();
         List<TextSegment> textSegments = new ArrayList<>();
 
         for (int i = 0; i < 10; i++) {
-            float[] vector = randomVector(5);
-            expectedVectorsAndIndexes.put(Arrays.toString(vector).replaceAll("\s", ""), i);
-            embeddings.add(new Embedding(vector));
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            expectedVectorsAndIndexes.put(vector, i);
+            embeddings.add(new Embedding(vector.toArray()));
             Map<String, Object> metaMap = new HashMap<>();
             metaMap.put("string", "s" + i);
             metaMap.put("uuid", UUID.randomUUID());
@@ -263,7 +274,7 @@ public class AlloyDBEmbeddingStoreIT {
             Map<String, Object> extraMetaMap = new HashMap<>();
             Map<String, Object> metadataJsonMap = null;
             while (rs.next()) {
-                String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
+                PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
                 assertThat(expectedVectorsAndIndexes.keySet()).contains(response);
                 int index = expectedVectorsAndIndexes.get(response);
                 for (String column : metaMaps.get(index).keySet()) {
@@ -291,8 +302,8 @@ public class AlloyDBEmbeddingStoreIT {
     void remove_all_from_store() throws SQLException {
         List<Embedding> embeddings = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            float[] vector = randomVector(5);
-            embeddings.add(new Embedding(vector));
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            embeddings.add(new Embedding(vector.toArray()));
         }
         List<String> ids = store.addAll(embeddings);
         String stringIds = ids.stream().map(id -> String.format("'%s'", id)).collect(Collectors.joining(","));
@@ -316,5 +327,113 @@ public class AlloyDBEmbeddingStoreIT {
                     embeddingStoreConfig.getIdColumn(), TABLE_NAME, embeddingStoreConfig.getIdColumn(), stringIds));
             assertThat(rs.isBeforeFirst()).isFalse();
         }
+    }
+
+    @Test
+    void search_for_vector_min_score_0() {
+        List<Embedding> embeddings = new ArrayList<>();
+        List<TextSegment> textSegments = new ArrayList<>();
+        Map<Integer, Map<String, Object>> metaMaps = new HashMap<>();
+
+        Stack<String> hayStack = new Stack<>();
+        for (int i = 0; i < 10; i++) {
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            embeddings.add(new Embedding(vector.toArray()));
+            Map<String, Object> metaMap = new HashMap<>();
+            metaMap.put("string", "s" + i);
+            metaMap.put("uuid", UUID.randomUUID());
+            metaMap.put("integer", i);
+            metaMap.put("long", 1L);
+            metaMap.put("float", 1f);
+            metaMap.put("double", 1d);
+            metaMap.put("extra", "not in table columns " + i);
+            metaMap.put("extra_credits", 100 + i);
+            Metadata metadata = new Metadata(metaMap);
+            textSegments.add(new TextSegment("this is a test text " + i, metadata));
+            metaMaps.put(i, metaMap);
+
+            hayStack.push("s" + i);
+        }
+
+        store.addAll(embeddings, textSegments);
+
+        // filter by a column
+        IsIn isIn = new IsIn("string", hayStack);
+
+        EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embeddings.get(1))
+                .maxResults(10)
+                .minScore(0.0)
+                .filter(isIn)
+                .build();
+
+        List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
+
+        // should return all 10
+        assertThat(result.size()).isEqualTo(10);
+
+        for (EmbeddingMatch<TextSegment> match : result) {
+            Map<String, Object> matchMetadata = match.embedded().metadata().toMap();
+            Integer index = (Integer) matchMetadata.get("integer");
+            assertThat(match.embedded().text()).contains("this is a test text " + index);
+            // metadata json should be unpacked into the original columns
+            for (String column : matchMetadata.keySet()) {
+                assertThat(matchMetadata.get(column))
+                        .isEqualTo(metaMaps.get(index).get(column));
+            }
+        }
+    }
+
+    @Test
+    void search_for_vector_specific_min_score_embedding_model() {
+        List<String> testTexts = Arrays.asList("cat", "dog", "car", "truck");
+        List<Embedding> embeddings = new ArrayList<>();
+        List<TextSegment> textSegments = new ArrayList<>();
+
+        for (String text : testTexts) {
+            Map<String, Object> metaMap = new HashMap<>();
+            metaMap.put("string", "s" + text);
+            metaMap.put("uuid", UUID.randomUUID());
+            metaMap.put("integer", 1);
+            metaMap.put("long", 1L);
+            metaMap.put("float", 1f);
+            metaMap.put("double", 1d);
+            metaMap.put("extra", "not in table columns ");
+            metaMap.put("extra_credits", 100);
+            Metadata metadata = new Metadata(metaMap);
+            textSegments.add(new TextSegment(text, metadata));
+            // using AllMiniLmL6V2QuantizedEmbeddingModel for consistency with other implementations
+            embeddings.add(embeddingModel.embed(text).content());
+        }
+
+        store.addAll(embeddings, textSegments);
+        // search for "cat"
+        EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embeddings.get(0))
+                .maxResults(10)
+                .minScore(0.5)
+                .build();
+
+        List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
+        // should get 2 hits
+        assertThat(result.size()).isEqualTo(2);
+        List<String> expectedSearchResult = Arrays.asList("cat", "dog");
+        List<String> actualSearchResult = new ArrayList<>();
+        for (EmbeddingMatch<TextSegment> match : result) {
+            actualSearchResult.add(match.embedded().text());
+        }
+        assertThat(actualSearchResult).isEqualTo(expectedSearchResult);
+
+        // search for "cat" using a higher minScore
+        request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embeddings.get(0))
+                .minScore(0.9)
+                .build();
+
+        result = store.search(request).matches();
+
+        // should get 1 hit
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.get(0).embedded().text()).isEqualTo("cat");
     }
 }

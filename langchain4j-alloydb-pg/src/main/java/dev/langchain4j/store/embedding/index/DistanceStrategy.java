@@ -19,7 +19,7 @@ public enum DistanceStrategy {
     /**
      * Constructor for DistanceStrategy
      */
-    private DistanceStrategy(String indexFunction, String operator, String scannIndexFunction, String searchFunction) {
+    private DistanceStrategy(String operator, String searchFunction, String indexFunction, String scannIndexFunction) {
         this.indexFunction = indexFunction;
         this.operator = operator;
         this.scannIndexFunction = scannIndexFunction;
