@@ -1,6 +1,7 @@
-# AlloyDB for PostgreSQL for LangChain
+# AlloyDB PostgreSQL Embedding Store for LangChain4j
 
-==================================================
+
+This module implements `EmbeddingStore` backed by an AlloyDB for PostgreSQL database.
 
 - [Product Documentation](https://cloud.google.com/alloydb)
 
@@ -42,9 +43,20 @@ Java >= 17
 
 ## AlloyDBEngine Usage
 
-Instances of AlloyDBEngine can be created by configuring provided Builder, it requires the AlloyDB project-id, region, cluster, instance, database, database user (optional), database password (optional), IAM accont email (optional), ip-type (optional, default: "public"), host (optional), port (optional, default: 5432).
-example configuration: 
+Instances of `AlloyDBEngine` can be created by configuring provided `Builder`, it requires the following information from the AlloyDB project:
+ - project id
+ - region
+ - cluster
+ - instance
+ - database
+ - database-user (optional)
+ - database-password (optional)
+ - IAM accont email (optional)
+ - ip-type (optional, default: "public")
+ - host (optional)
+ - port (optional, default: 5432).
 
+example configuration: 
 ```java
 ...
 import dev.langchain4j.engine.AlloyDBEngine;
@@ -66,7 +78,18 @@ For authentication there will be 3 possible configurations
 - if neither the IAM account email or user and password are provided, the Engine will retrieve the account from the authenticated Google credential.
 
 ### initVectorStore
-AlloyDBEngine provides initVectorStore method to initialize the vector store table, it requires a EmbeddingStoreConfig object that can be configured with its provided Builder it requires table name, vector size, schema name (optional, default: "public"), contentColumn (optional, default: "content"), embeddingColumn(optional, default:"embedding"), idColumn (optional, default:"langchain_id"), metadata columns (optional), metadataJsonColumn (optional, default: "langchain_metadata"), overwriteExisting (optional, default: false), storeMetadata (optional, default: false).
+`AlloyDBEngine` provides `initVectorStore` method to initialize the vector store table, it requires a `EmbeddingStoreConfig` object that can be configured with its provided `Builder` it requires the following:
+- table name
+- vector size
+- schema name (optional, default: "public")
+- content column name (optional, default: "content")
+- embedding column name(optional, default:"embedding")
+- id column name (optional, default:"langchain_id")
+- metadata columns (optional)
+- additional metadata Json Column name (optional, default: "langchain_metadata")
+- overwrite existing enabled(optional, default: false)
+- store metadata enabled (optional, default: false)
+
 example usage:
 ```java
 ...
@@ -86,159 +109,86 @@ import dev.langchain4j.engine.MetadataColumn;
         engine.initVectorStoreTable(customParams);
 ```
 
-MetadataColumn constructor receives 3 parameters, the name of the column, the column's type and a boolean nullable for using the nullable constraint, supported types are: "text", "char()", "varchar()", "uuid", "integer", "bigint", "real" and "double"
+`MetadataColumn` constructor receives 3 parameters, the name of the column, the column's type and a boolean nullable for using the nullable constraint, supported types are: "text", "char()", "varchar()", "uuid", "integer", "bigint", "real" and "double"
 
 
 ## AlloyDBEmbeddingStore Usage
 
-Use a vector store to store embedded data and perform vector search, instances of AlloyDBEmbeddingStore can be created by configuring provided Builder, it requires an AlloyDBEngine, table name, schema name (optional, default: "public"), content column (optional, default: "content"), embedding column (optional, default: "embedding"), id column (optional, default: "langchain_id"), metadata column names (optional), additional metadata json column (optional, default: "langchain_metadata"), ignored metadata column names (optional), distance strategy (optional, default:DistanceStrategy.COSINE_DISTANCE), query options (optional).
+Use a vector store to store text embedded data and perform vector search, instances of `AlloyDBEmbeddingStore` can be created by configuring provided `Builder`, it requires the following:
+- `AlloyDBEngine` instance
+- table name
+- schema name (optional, default: "public")
+- content column (optional, default: "content")
+- embedding column (optional, default: "embedding")
+- id column (optional, default: "langchain_id")
+- metadata column names (optional)
+- additional metadata json column (optional, default: "langchain_metadata")
+- ignored metadata column names (optional)
+- distance strategy (optional, default:DistanceStrategy.COSINE_DISTANCE)
+- query options (optional).
 
-
+example usage:
 ```java
 ...
     import dev.langchain4j.store.embedding.alloydb.AlloyDBEmbeddingStore;
-
+...
     AlloyDBEmbeddingStore store = new AlloyDBEmbeddingStore.Builder(engine, TABLE_NAME)
         .build();
 
-    
+    List<String> testTexts = Arrays.asList("cat", "dog", "car", "truck");
+    List<Embedding> embeddings = new ArrayList<>();
+    List<TextSegment> textSegments = new ArrayList<>();
+
+        for (String text : testTexts) {
+            Map<String, Object> metaMap = new HashMap<>();
+            metaMap.put("string_metadata", "sring");
+            Metadata metadata = new Metadata(metaMap);
+            textSegments.add(new TextSegment(text, metadata));
+            embeddings.add(MyEmbeddingModel.embed(text).content());
+        }
+
+        List<String> ids = store.addAll(embeddings, textSegments);
+        // search for "cat"
+        EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embeddings.get(0))
+                .maxResults(10)
+                .minScore(0.9)
+                .build();
+
+        List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
+
+        // remove cat
+        store.removeAll(singletonList(result.get(0).embeddingId()));
+
+
 ```
-See the full `Vector Store`_ tutorial.
 
-.. _`Vector Store`: https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/docs/vector_store.ipynb
+## Document Loader Usage
 
-Document Loader Usage
-~~~~~~~~~~~~~~~~~~~~~
+Use a document loader to load data as LangChain4j `Document`.
 
-Use a document loader to load data as LangChain ``Document``\ s.
+```java
 
-.. code-block:: python
+import dev.langchain4j.data.document.Document;
+import dev.langchain4j.engine.AlloyDBEngine;
+import dev.langchain4j.engine.AlloyDBLoader;
 
-   from langchain_google_alloydb_pg import AlloyDBEngine, AlloyDBLoader
+    AlloyDBEngine engine = new AlloyDBEngine.Builder()
+                .projectId("my-projectId")
+                .region("my-region")
+                .cluster("my-cluster")
+                .instance("my-instance")
+                .database("my-database")
+                .user("my-user")
+                .password("my-password")
+                .build();
+   AlloyDBLoader loader = AlloyDBLoader.builder()
+                .engine(engine)
+                .tableName("my-table-name")
+                .build();
+   List<Document> docs = loader.load();
 
-
-   engine = AlloyDBEngine.from_instance("project-id", "region", "my-cluster", "my-instance", "my-database")
-   loader = AlloyDBLoader.create_sync(
-       engine,
-       table_name="my-table-name"
-   )
-   docs = loader.lazy_load()
-
-See the full `Document Loader`_ tutorial.
-
-.. _`Document Loader`: https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/docs/document_loader.ipynb
-
-Chat Message History Usage
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Use ``ChatMessageHistory`` to store messages and provide conversation
-history to LLMs.
-
-.. code:: python
-
-   from langchain_google_alloydb_pg import AlloyDBChatMessageHistory, AlloyDBEngine
-
-
-   engine = AlloyDBEngine.from_instance("project-id", "region", "my-cluster", "my-instance", "my-database")
-   history = AlloyDBChatMessageHistory.create_sync(
-       engine,
-       table_name="my-message-store",
-       session_id="my-session-id"
-   )
-
-See the full `Chat Message History`_ tutorial.
-
-.. _`Chat Message History`: https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/docs/chat_message_history.ipynb
-
-Langgraph Checkpoint Usage
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Use ``AlloyDBSaver`` to save snapshots of the graph state at a given point in time.
-
-.. code:: python
-
-   from langchain_google_alloydb_pg import AlloyDBSaver, AlloyDBEngine
-
-
-   engine = AlloyDBEngine.from_instance("project-id", "region", "my-cluster", "my-instance", "my-database")
-   checkpoint = AlloyDBSaver.create_sync(engine)
-
-See the full `Checkpoint`_ tutorial.
-
-.. _`Checkpoint`: https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/docs/langgraph_checkpoint.ipynb
-
-Example Usage
--------------
-
-Code examples can be found in the `samples/`_ folder.
-
-.. _samples/: https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/samples
-
-Converting between Sync & Async Usage
--------------------------------------
-
-Async functionality improves the speed and efficiency of database connections through concurrency,
-which is key for providing enterprise quality performance and scaling in GenAI applications. This
-package uses a native async Postgres driver, `asyncpg`_, to optimize Python's async functionality.
-
-LangChain supports `async programming`_, since LLM based application utilize many I/O-bound operations,
-such as making API calls to language models, databases, or other services. All components should provide
-both async and sync versions of all methods.
-
-`asyncio`_ is a Python library used for concurrent programming and is used as the foundation for multiple
-Python asynchronous frameworks. asyncio uses `async` / `await` syntax to achieve concurrency for
-non-blocking I/O-bound tasks using one thread with cooperative multitasking instead of multi-threading.
-
-.. _`async programming`: https://python.langchain.com/docs/concepts/async/
-.. _`asyncio`: https://docs.python.org/3/library/asyncio.html
-.. _`asyncpg`: https://github.com/MagicStack/asyncpg
-
-Converting Sync to Async
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Update sync methods to `await` async methods
-
-.. code:: python
-
-   engine = await AlloyDBEngine.afrom_instance("project-id", "region", "my-cluster", "my-instance", "my-database")
-   await engine.ainit_vectorstore_table(table_name="my-table", vector_size=768)
-   vectorstore = await AlloyDBVectorStore.create(
-      engine,
-      table_name="my-table",
-      embedding_service=VertexAIEmbeddings(model_name="textembedding-gecko@003")
-   )
-
-Run the code: notebooks
-^^^^^^^^^^^^^^^^^^^^^^^
-
-ipython and jupyter notebooks support the use of the `await` keyword without any additional setup
-
-Run the code: FastAPI
-^^^^^^^^^^^^^^^^^^^^^
-
-Update routes to use `async def`.
-
-.. code:: python
-
-   @app.get("/invoke/")
-   async def invoke(query: str):
-      return await retriever.ainvoke(query)
-
-
-Run the code: Local python file
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-It is recommend to create a top-level async method definition: `async def` to wrap multiple async methods.
-Then use `asyncio.run()` to run the the top-level entrypoint, e.g. "main()"
-
-.. code:: python
-
-   async def main():
-      response = await retriever.ainvoke(query)
-      print(response)
-
-   asyncio.run(main())
-
+   ```
 
 Contributions
 -------------
@@ -268,6 +218,3 @@ Disclaimer
 This is not an officially supported Google product.
 
 
-
-## AlloyDB PostgreSQL Embedding Store for LangChain4j
-This module implements `EmbeddingStore` backed by an AlloyDB for PostgreSQL database.
