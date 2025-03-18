@@ -18,7 +18,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     @Container
-    static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
+    static PostgreSQLContainer<?> pgVector =
+            new PostgreSQLContainer<>("pgvector/pgvector:pg15").withCommand("postgres -c max_connections=100");
 
     final String tableName = "test" + nextInt(2000, 3000);
     AlloyDBEngine engine = new AlloyDBEngine.Builder()

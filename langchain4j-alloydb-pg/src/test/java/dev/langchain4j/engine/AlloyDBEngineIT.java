@@ -16,7 +16,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+@Testcontainers
 public class AlloyDBEngineIT {
 
     private static final String TABLE_NAME = "java_engine_test_table" + randomUUID();
@@ -33,31 +35,17 @@ public class AlloyDBEngineIT {
     private static String user;
     private static String password;
 
-    private static AlloyDBEngine engine;
+    private static AlloyDBEngine engine = new AlloyDBEngine.Builder()
+            .host(pgVector.getHost())
+            .port(pgVector.getFirstMappedPort())
+            .user("test")
+            .password("test")
+            .database("test")
+            .build();
     private static Connection defaultConnection;
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
-        projectId = System.getenv("ALLOYDB_PROJECT_ID");
-        region = System.getenv("ALLOYDB_REGION");
-        cluster = System.getenv("ALLOYDB_CLUSTER");
-        instance = System.getenv("ALLOYDB_INSTANCE");
-        database = System.getenv("ALLOYDB_DB_NAME");
-        user = System.getenv("ALLOYDB_USER");
-        password = System.getenv("ALLOYDB_PASSWORD");
-        iamEmail = System.getenv("ALLOYDB_IAM_EMAIL");
-
-        engine = new AlloyDBEngine.Builder()
-                .projectId(projectId)
-                .region(region)
-                .cluster(cluster)
-                .instance(instance)
-                .database(database)
-                .user(user)
-                .password(password)
-                .ipType("public")
-                .build();
-
         defaultConnection = engine.getConnection();
 
         defaultConnection
@@ -186,6 +174,7 @@ public class AlloyDBEngineIT {
                         CUSTOM_TABLE_NAME.substring(0, CUSTOM_TABLE_NAME.length() - 2)));
     }
 
+    @Ignore("Test against Google Cloud only")
     @Test
     void create_engine_with_iam_auth() throws SQLException {
         AlloyDBEngine iamEngine = new AlloyDBEngine.Builder()
@@ -203,6 +192,7 @@ public class AlloyDBEngineIT {
         }
     }
 
+    @Ignore("Test against Google Cloud only")
     @Test
     void create_engine_with_get_iam_email() throws SQLException {
         AlloyDBEngine iamEngine = new AlloyDBEngine.Builder()
