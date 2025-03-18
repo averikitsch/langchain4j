@@ -63,7 +63,7 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                 .overwriteExisting(true)
                 .build());
 
-        List<String> metaColumnNames =
+        List<String> metadataColumnNames =
                 metadataColumns.stream().map(c -> c.getName()).collect(Collectors.toList());
 
         embeddingStore = new AlloyDBEmbeddingStore.Builder(engine, tableName)
