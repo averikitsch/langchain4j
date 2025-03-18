@@ -245,6 +245,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     Embedding embedding = Embedding.from(pgVector.toArray());
 
                     String embeddedText = resultSet.getString(contentColumn);
+                    System.out.println(embeddingId + embeddedText + embedding);
                     Map<String, Object> metadataMap = new HashMap<>();
 
                     for (String metaColumn : metadataColumns) {
