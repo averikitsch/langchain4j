@@ -221,7 +221,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 distanceStrategy.getOperator(),
                 vector,
                 request.maxResults());
-
+        System.out.println(query);
         List<EmbeddingMatch<TextSegment>> embeddingMatches = new ArrayList<>();
 
         try (Connection conn = engine.getConnection()) {
