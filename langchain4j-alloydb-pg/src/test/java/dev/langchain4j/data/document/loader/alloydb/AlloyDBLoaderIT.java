@@ -42,15 +42,10 @@ public class AlloyDBLoaderIT {
         database = System.getenv("ALLOYDB_DB_NAME");
         user = System.getenv("ALLOYDB_USER");
         password = System.getenv("ALLOYDB_PASSWORD");
-        engine = new AlloyDBEngine.Builder()
-                .projectId(projectId)
-                .region(region)
-                .cluster(cluster)
-                .instance(instance)
-                .database(database)
+        engine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
                 .user(user)
                 .password(password)
-                .ipType("PUBLIC")
+                .ipType("public")
                 .build();
         connection = engine.getConnection();
     }
