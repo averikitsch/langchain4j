@@ -10,6 +10,8 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -25,7 +27,8 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     EmbeddingStore<TextSegment> embeddingStore;
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
-    protected void ensureStoreIsReady() {
+    @BeforeAll
+    protected void startEngine() {
         if (engine == null) {
             engine = new AlloyDBEngine.Builder()
                     .host(pgVector.getHost())
@@ -35,6 +38,14 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
                     .database("test")
                     .build();
         }
+    }
+
+    @AfterAll
+    protected void stopEngine() {
+        engine.close();
+    }
+
+    protected void ensureStoreIsReady() {
         engine.initVectorStoreTable(new EmbeddingStoreConfig.Builder(tableName, 384).build());
 
         embeddingStore = new AlloyDBEmbeddingStore.Builder(engine, tableName)
