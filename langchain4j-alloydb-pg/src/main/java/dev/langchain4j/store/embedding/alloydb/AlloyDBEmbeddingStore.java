@@ -194,8 +194,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         columns.add(idColumn);
         columns.add(contentColumn);
         columns.add(embeddingColumn);
-        System.out.println(metadataColumns);
-        columns.addAll(metadataColumns);
         if (isNotNullOrBlank(metadataJsonColumn)) {
             columns.add(metadataJsonColumn);
         }
@@ -223,7 +221,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 distanceStrategy.getOperator(),
                 vector,
                 request.maxResults());
-        System.out.println(query);
         List<EmbeddingMatch<TextSegment>> embeddingMatches = new ArrayList<>();
 
         try (Connection conn = engine.getConnection()) {
