@@ -23,7 +23,7 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
 
     final String tableName = "test" + nextInt(2000, 3000);
-    AlloyDBEngine engine;
+    static AlloyDBEngine engine;
     EmbeddingStore<TextSegment> embeddingStore;
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
