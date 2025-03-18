@@ -22,6 +22,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public class AlloyDBEngineIT {
 
+    @Container
+    static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
+
     private static final String TABLE_NAME = "java_engine_test_table" + randomUUID();
     private static final String CUSTOM_TABLE_NAME = "java_engine_test_custom_table" + randomUUID();
     private static final String CUSTOM_SCHEMA = "custom_schema";
