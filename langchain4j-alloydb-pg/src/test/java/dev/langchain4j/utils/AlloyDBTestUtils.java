@@ -2,6 +2,7 @@ package dev.langchain4j.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.pgvector.PGvector;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -42,11 +43,11 @@ public class AlloyDBTestUtils {
         }
     }
 
-    public static float[] randomVector(int length) {
+    public static PGvector randomPGvector(int length) {
         float[] vector = new float[length];
         for (int i = 0; i < vector.length; i++) {
             vector[i] = RANDOM.nextFloat() * 1000;
         }
-        return vector;
+        return new PGvector(vector);
     }
 }

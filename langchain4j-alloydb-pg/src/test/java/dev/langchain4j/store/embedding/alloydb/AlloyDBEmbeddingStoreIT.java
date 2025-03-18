@@ -3,11 +3,12 @@ package dev.langchain4j.store.embedding.alloydb;
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.utils.AlloyDBTestUtils.randomVector;
+import static dev.langchain4j.utils.AlloyDBTestUtils.randomPGvector;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pgvector.PGvector;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -112,8 +113,8 @@ public class AlloyDBEmbeddingStoreIT {
 
     @Test
     void add_single_embedding_to_store() throws SQLException {
-        float[] vector = randomVector(VECTOR_SIZE);
-        Embedding embedding = new Embedding(vector);
+        PGvector vector = randomPGvector(VECTOR_SIZE);
+        Embedding embedding = new Embedding(vector.toArray());
         String id = store.add(embedding);
 
         try (Statement statement = defaultConnection.createStatement(); ) {
@@ -121,20 +122,19 @@ public class AlloyDBEmbeddingStoreIT {
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" = '%s'",
                     embeddingStoreConfig.getEmbeddingColumn(), TABLE_NAME, embeddingStoreConfig.getIdColumn(), id));
             rs.next();
-            String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
-            assertThat(response)
-                    .isEqualTo(Arrays.toString(vector).replaceAll(" ", "").replaceAll(".0,", ","));
+            PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
+            assertThat(response).isEqualTo(vector);
         }
     }
 
     @Test
     void add_embeddings_list_to_store() throws SQLException {
-        List<String> expectedVectors = new ArrayList<>();
+        List<PGvector> expectedVectors = new ArrayList<>();
         List<Embedding> embeddings = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            float[] vector = randomVector(VECTOR_SIZE);
-            expectedVectors.add(Arrays.toString(vector).replaceAll(" ", "").replaceAll(".0,", ","));
-            embeddings.add(new Embedding(vector));
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            expectedVectors.add(vector);
+            embeddings.add(new Embedding(vector.toArray()));
         }
         List<String> ids = store.addAll(embeddings);
         String stringIds = ids.stream().map(id -> String.format("'%s'", id)).collect(Collectors.joining(","));
@@ -147,7 +147,7 @@ public class AlloyDBEmbeddingStoreIT {
                     embeddingStoreConfig.getIdColumn(),
                     stringIds));
             while (rs.next()) {
-                String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
+                PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
                 assertThat(expectedVectors).contains(response);
             }
         }
@@ -155,8 +155,8 @@ public class AlloyDBEmbeddingStoreIT {
 
     @Test
     void add_single_embedding_with_id_to_store() throws SQLException {
-        float[] vector = randomVector(VECTOR_SIZE);
-        Embedding embedding = new Embedding(vector);
+        PGvector vector = randomPGvector(VECTOR_SIZE);
+        Embedding embedding = new Embedding(vector.toArray());
         String id = randomUUID();
         store.add(id, embedding);
 
@@ -165,16 +165,15 @@ public class AlloyDBEmbeddingStoreIT {
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" = '%s'",
                     embeddingStoreConfig.getEmbeddingColumn(), TABLE_NAME, embeddingStoreConfig.getIdColumn(), id));
             rs.next();
-            String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
-            assertThat(response)
-                    .isEqualTo(Arrays.toString(vector).replaceAll(" ", "").replaceAll(".0,", ","));
+            PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
+            assertThat(response).isEqualTo(vector);
         }
     }
 
     @Test
     void add_single_embedding_with_content_to_store() throws SQLException, JsonProcessingException {
-        float[] vector = randomVector(VECTOR_SIZE);
-        Embedding embedding = new Embedding(vector);
+        PGvector vector = randomPGvector(VECTOR_SIZE);
+        Embedding embedding = new Embedding(vector.toArray());
 
         Map<String, Object> metaMap = new HashMap<>();
         metaMap.put("string", "s");
@@ -206,9 +205,8 @@ public class AlloyDBEmbeddingStoreIT {
             Map<String, Object> extraMetaMap = new HashMap<>();
             Map<String, Object> metadataJsonMap = null;
             while (rs.next()) {
-                String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
-                assertThat(response)
-                        .isEqualTo(Arrays.toString(vector).replaceAll(" ", "").replaceAll(".0,", ","));
+                PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
+                assertThat(response).isEqualTo(vector);
                 for (String column : metaMap.keySet()) {
                     if (column.contains("extra")) {
                         extraMetaMap.put(column, metaMap.get(column));
@@ -230,16 +228,15 @@ public class AlloyDBEmbeddingStoreIT {
 
     @Test
     void add_embeddings_list_and_content_list_to_store() throws SQLException, JsonProcessingException {
-        Map<String, Integer> expectedVectorsAndIndexes = new HashMap<>();
+        Map<PGvector, Integer> expectedVectorsAndIndexes = new HashMap<>();
         Map<Integer, Map<String, Object>> metaMaps = new HashMap<>();
         List<Embedding> embeddings = new ArrayList<>();
         List<TextSegment> textSegments = new ArrayList<>();
 
         for (int i = 0; i < 10; i++) {
-            float[] vector = randomVector(VECTOR_SIZE);
-            expectedVectorsAndIndexes.put(
-                    Arrays.toString(vector).replaceAll(" ", "").replaceAll(".0,", ","), i);
-            embeddings.add(new Embedding(vector));
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            expectedVectorsAndIndexes.put(vector, i);
+            embeddings.add(new Embedding(vector.toArray()));
             Map<String, Object> metaMap = new HashMap<>();
             metaMap.put("string", "s" + i);
             metaMap.put("uuid", UUID.randomUUID());
@@ -274,7 +271,7 @@ public class AlloyDBEmbeddingStoreIT {
             Map<String, Object> extraMetaMap = new HashMap<>();
             Map<String, Object> metadataJsonMap = null;
             while (rs.next()) {
-                String response = rs.getString(embeddingStoreConfig.getEmbeddingColumn());
+                PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
                 assertThat(expectedVectorsAndIndexes.keySet()).contains(response);
                 int index = expectedVectorsAndIndexes.get(response);
                 for (String column : metaMaps.get(index).keySet()) {
@@ -302,8 +299,8 @@ public class AlloyDBEmbeddingStoreIT {
     void remove_all_from_store() throws SQLException {
         List<Embedding> embeddings = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            float[] vector = randomVector(VECTOR_SIZE);
-            embeddings.add(new Embedding(vector));
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            embeddings.add(new Embedding(vector.toArray()));
         }
         List<String> ids = store.addAll(embeddings);
         String stringIds = ids.stream().map(id -> String.format("'%s'", id)).collect(Collectors.joining(","));
@@ -337,8 +334,8 @@ public class AlloyDBEmbeddingStoreIT {
 
         Stack<String> hayStack = new Stack<>();
         for (int i = 0; i < 10; i++) {
-            float[] vector = randomVector(VECTOR_SIZE);
-            embeddings.add(new Embedding(vector));
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            embeddings.add(new Embedding(vector.toArray()));
             Map<String, Object> metaMap = new HashMap<>();
             metaMap.put("string", "s" + i);
             metaMap.put("uuid", UUID.randomUUID());

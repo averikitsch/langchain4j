@@ -114,6 +114,7 @@ public class AlloyDBEngine {
      */
     public Connection getConnection() throws SQLException {
         Connection connection = dataSource.getConnection();
+        PGvector.addVectorType(connection);
         return connection;
     }
 
@@ -125,7 +126,6 @@ public class AlloyDBEngine {
         try (Connection connection = getConnection(); ) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
-            PGvector.addVectorType(connection);
 
             if (embeddingStoreConfig.getOverwriteExisting()) {
                 statement.executeUpdate(String.format(
