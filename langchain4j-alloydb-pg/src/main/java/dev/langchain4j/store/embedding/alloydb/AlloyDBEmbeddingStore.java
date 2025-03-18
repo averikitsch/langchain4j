@@ -194,6 +194,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         columns.add(idColumn);
         columns.add(contentColumn);
         columns.add(embeddingColumn);
+        System.out.println(metadataColumns);
         columns.addAll(metadataColumns);
         if (isNotNullOrBlank(metadataJsonColumn)) {
             columns.add(metadataJsonColumn);
@@ -247,13 +248,13 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     Embedding embedding = Embedding.from(pgVector.toArray());
 
                     String embeddedText = resultSet.getString(contentColumn);
-                    System.out.println(resultSet.toString());
+
                     ResultSetMetaData rsmd = resultSet.getMetaData();
                     int columnsNumber = rsmd.getColumnCount();
                     for (int i = 1; i <= columnsNumber; i++) {
                         if (i > 1) System.out.print(",  ");
-                        String columnValue = resultSet.getString(i);
-                        System.out.print(columnValue + " " + rsmd.getColumnName(i));
+                        // String columnValue = resultSet.getString(i);
+                        System.out.print(rsmd.getColumnName(i));
                     }
                     Map<String, Object> metadataMap = new HashMap<>();
 
