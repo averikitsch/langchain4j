@@ -174,8 +174,7 @@ public class AlloyDBLoader {
          * @throws SQLException if a database error occurs.
          */
         public AlloyDBLoader build() throws SQLException {
-            if ((this.query == null || this.query.isEmpty())
-                    && (this.tableName == null || this.tableName.isEmpty())) {
+            if ((this.query == null || this.query.isEmpty()) && (this.tableName == null || this.tableName.isEmpty())) {
                 throw new IllegalArgumentException("Either query or tableName must be specified.");
             }
             if (query == null) {
@@ -183,8 +182,7 @@ public class AlloyDBLoader {
             }
 
             if (format != null && formatter != null) {
-                throw new IllegalArgumentException(
-                        "Only one of 'format' or 'formatter' should be specified.");
+                throw new IllegalArgumentException("Only one of 'format' or 'formatter' should be specified.");
             }
 
             if (format != null) {
@@ -202,8 +200,7 @@ public class AlloyDBLoader {
                         this.formatter = AlloyDBLoader::yamlFormatter;
                         break;
                     default:
-                        throw new IllegalArgumentException(
-                                "format must be type: 'csv', 'text', 'JSON', 'YAML'");
+                        throw new IllegalArgumentException("format must be type: 'csv', 'text', 'JSON', 'YAML'");
                 }
             } else if (formatter == null) {
                 this.formatter = AlloyDBLoader::textFormatter;
@@ -220,16 +217,16 @@ public class AlloyDBLoader {
             }
 
             contentColumns =
-                    contentColumns == null || contentColumns.isEmpty() ? List.of(columnNames.get(0))
-                            : contentColumns;
+                    contentColumns == null || contentColumns.isEmpty() ? List.of(columnNames.get(0)) : contentColumns;
             metadataColumns = metadataColumns == null || metadataColumns.isEmpty()
-                    ? columnNames.stream().filter(col -> !contentColumns.contains(col)).toList()
+                    ? columnNames.stream()
+                            .filter(col -> !contentColumns.contains(col))
+                            .toList()
                     : metadataColumns;
 
             if (metadataJsonColumn != null && !columnNames.contains(metadataJsonColumn)) {
                 throw new IllegalArgumentException(
-                        String.format("Column %s not found in query result %s.", metadataJsonColumn,
-                                columnNames));
+                        String.format("Column %s not found in query result %s.", metadataJsonColumn, columnNames));
             }
             if (metadataJsonColumn == null && columnNames.contains(DEFAULT_METADATA_COL)) {
                 metadataJsonColumn = DEFAULT_METADATA_COL;
@@ -239,8 +236,8 @@ public class AlloyDBLoader {
             allNames.addAll(metadataColumns);
             for (String name : allNames) {
                 if (!columnNames.contains(name)) {
-                    throw new IllegalArgumentException(String
-                            .format("Column %s not found in query result %s.", name, columnNames));
+                    throw new IllegalArgumentException(
+                            String.format("Column %s not found in query result %s.", name, columnNames));
                 }
             }
             return new AlloyDBLoader(this);

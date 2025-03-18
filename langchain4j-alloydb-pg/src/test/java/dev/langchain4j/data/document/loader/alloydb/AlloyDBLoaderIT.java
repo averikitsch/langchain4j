@@ -30,8 +30,12 @@ public class AlloyDBLoaderIT {
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
-        engine = new AlloyDBEngine.Builder().host(pgVector.getHost())
-                .port(pgVector.getFirstMappedPort()).user("test").password("test").database("test")
+        engine = new AlloyDBEngine.Builder()
+                .host(pgVector.getHost())
+                .port(pgVector.getFirstMappedPort())
+                .user("test")
+                .password("test")
+                .database("test")
                 .build();
         connection = engine.getConnection();
     }
@@ -64,9 +68,12 @@ public class AlloyDBLoaderIT {
 
     @Test
     public void testLoadDocumentsFromDatabase() throws SQLException {
-        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine).tableName("test_table")
-                .contentColumns(Arrays.asList("content")).metadataColumns(Arrays.asList("metadata"))
-                .metadataJsonColumn("langchain_metadata").build();
+        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
+                .tableName("test_table")
+                .contentColumns(Arrays.asList("content"))
+                .metadataColumns(Arrays.asList("metadata"))
+                .metadataJsonColumn("langchain_metadata")
+                .build();
 
         List<Document> documents = loader.load();
 
@@ -86,8 +93,10 @@ public class AlloyDBLoaderIT {
     public void testLoadDocumentsWithCustomQuery() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .query("SELECT content, metadata, langchain_metadata FROM test_table WHERE id = 1")
-                .contentColumns(Arrays.asList("content")).metadataColumns(Arrays.asList("metadata"))
-                .metadataJsonColumn("langchain_metadata").build();
+                .contentColumns(Arrays.asList("content"))
+                .metadataColumns(Arrays.asList("metadata"))
+                .metadataJsonColumn("langchain_metadata")
+                .build();
 
         List<Document> documents = loader.load();
 
@@ -101,9 +110,13 @@ public class AlloyDBLoaderIT {
 
     @Test
     public void testLoadDocumentsWithTextFormatter() throws SQLException {
-        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine).tableName("test_table")
-                .contentColumns(Arrays.asList("content")).metadataColumns(Arrays.asList("metadata"))
-                .metadataJsonColumn("langchain_metadata").format("text").build();
+        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
+                .tableName("test_table")
+                .contentColumns(Arrays.asList("content"))
+                .metadataColumns(Arrays.asList("metadata"))
+                .metadataJsonColumn("langchain_metadata")
+                .format("text")
+                .build();
 
         List<Document> documents = loader.load();
 
@@ -113,9 +126,13 @@ public class AlloyDBLoaderIT {
 
     @Test
     public void testLoadDocumentsWithCsvFormatter() throws SQLException {
-        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine).tableName("test_table")
-                .contentColumns(Arrays.asList("content")).metadataColumns(Arrays.asList("metadata"))
-                .metadataJsonColumn("langchain_metadata").format("csv").build();
+        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
+                .tableName("test_table")
+                .contentColumns(Arrays.asList("content"))
+                .metadataColumns(Arrays.asList("metadata"))
+                .metadataJsonColumn("langchain_metadata")
+                .format("csv")
+                .build();
 
         List<Document> documents = loader.load();
 
@@ -125,9 +142,13 @@ public class AlloyDBLoaderIT {
 
     @Test
     public void testLoadDocumentsWithYamlFormatter() throws SQLException {
-        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine).tableName("test_table")
-                .contentColumns(Arrays.asList("content")).metadataColumns(Arrays.asList("metadata"))
-                .metadataJsonColumn("langchain_metadata").format("YAML").build();
+        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
+                .tableName("test_table")
+                .contentColumns(Arrays.asList("content"))
+                .metadataColumns(Arrays.asList("metadata"))
+                .metadataJsonColumn("langchain_metadata")
+                .format("YAML")
+                .build();
 
         List<Document> documents = loader.load();
 
@@ -137,9 +158,13 @@ public class AlloyDBLoaderIT {
 
     @Test
     public void testLoadDocumentsWithJsonFormatter() throws SQLException {
-        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine).tableName("test_table")
-                .contentColumns(Arrays.asList("content")).metadataColumns(Arrays.asList("metadata"))
-                .metadataJsonColumn("langchain_metadata").format("JSON").build();
+        AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
+                .tableName("test_table")
+                .contentColumns(Arrays.asList("content"))
+                .metadataColumns(Arrays.asList("metadata"))
+                .metadataJsonColumn("langchain_metadata")
+                .format("JSON")
+                .build();
 
         List<Document> documents = loader.load();
 
