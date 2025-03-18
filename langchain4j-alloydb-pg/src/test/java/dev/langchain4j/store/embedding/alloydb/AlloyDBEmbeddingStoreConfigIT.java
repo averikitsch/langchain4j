@@ -120,6 +120,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
         String id = store.add(embedding);
 
         try (Statement statement = defaultConnection.createStatement(); ) {
+            PGvector.addVectorType(defaultConnection);
             ResultSet rs = statement.executeQuery(String.format(
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" = '%s'",
                     embeddingStoreConfig.getEmbeddingColumn(), TABLE_NAME, embeddingStoreConfig.getIdColumn(), id));
@@ -142,6 +143,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
         String stringIds = ids.stream().map(id -> String.format("'%s'", id)).collect(Collectors.joining(","));
 
         try (Statement statement = defaultConnection.createStatement(); ) {
+            PGvector.addVectorType(defaultConnection);
             ResultSet rs = statement.executeQuery(String.format(
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" IN (%s)",
                     embeddingStoreConfig.getEmbeddingColumn(),
@@ -163,6 +165,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
         store.add(id, embedding);
 
         try (Statement statement = defaultConnection.createStatement(); ) {
+            PGvector.addVectorType(defaultConnection);
             ResultSet rs = statement.executeQuery(String.format(
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" = '%s'",
                     embeddingStoreConfig.getEmbeddingColumn(), TABLE_NAME, embeddingStoreConfig.getIdColumn(), id));
@@ -196,6 +199,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
                 .collect(Collectors.joining(", "));
 
         try (Statement statement = defaultConnection.createStatement(); ) {
+            PGvector.addVectorType(defaultConnection);
             ResultSet rs = statement.executeQuery(String.format(
                     "SELECT \"%s\", %s, \"%s\" FROM \"%s\" WHERE \"%s\" = '%s'",
                     embeddingStoreConfig.getEmbeddingColumn(),
@@ -262,6 +266,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
                 .collect(Collectors.joining(", "));
 
         try (Statement statement = defaultConnection.createStatement(); ) {
+            PGvector.addVectorType(defaultConnection);
             ResultSet rs = statement.executeQuery(String.format(
                     "SELECT \"%s\", %s ,\"%s\" FROM \"%s\" WHERE \"%s\" IN (%s)",
                     embeddingStoreConfig.getEmbeddingColumn(),
@@ -307,6 +312,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
         List<String> ids = store.addAll(embeddings);
         String stringIds = ids.stream().map(id -> String.format("'%s'", id)).collect(Collectors.joining(","));
         try (Statement statement = defaultConnection.createStatement(); ) {
+            PGvector.addVectorType(defaultConnection);
             // assert IDs exist
             ResultSet rs = statement.executeQuery(String.format(
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" IN (%s)",
@@ -320,6 +326,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
         store.removeAll(ids);
 
         try (Statement statement = defaultConnection.createStatement(); ) {
+            PGvector.addVectorType(defaultConnection);
             // assert IDs were removed
             ResultSet rs = statement.executeQuery(String.format(
                     "SELECT \"%s\" FROM \"%s\" WHERE \"%s\" IN (%s)",
@@ -409,7 +416,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
         // search for "cat"
         EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
                 .queryEmbedding(embeddings.get(0))
-                .maxResults(10)
+                .maxResults(2)
                 .minScore(0.5)
                 .build();
 
