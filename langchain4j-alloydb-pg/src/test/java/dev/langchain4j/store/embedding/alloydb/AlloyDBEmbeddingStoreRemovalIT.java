@@ -70,4 +70,8 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     protected boolean supportsRemoveAllByFilter() {
         return false;
     }
+
+    protected boolean supportsRemoveAll() {
+        return false;
+    }
 }
