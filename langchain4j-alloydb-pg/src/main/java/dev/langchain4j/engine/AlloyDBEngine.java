@@ -171,7 +171,7 @@ public class AlloyDBEngine {
 
             if (embeddingStoreConfig.getOverwriteExisting()) {
                 statement.executeUpdate(String.format(
-                        "DROP TABLE \"%s\".\"%s\"",
+                        "DROP TABLE IF EXISTS \"%s\".\"%s\"",
                         embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()));
             }
             String metadataClause = "";

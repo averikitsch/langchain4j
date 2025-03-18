@@ -66,4 +66,8 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     protected EmbeddingModel embeddingModel() {
         return embeddingModel;
     }
+
+    protected boolean supportsRemoveAllByFilter() {
+        return false;
+    }
 }
