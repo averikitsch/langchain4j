@@ -247,22 +247,23 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     Map<String, Object> metadataMap = new HashMap<>();
 
-                    for (String metaColumn : metadataColumns) {
-
-                        if (resultSet.getObject(metaColumn) != null) {
-                            metadataMap.put(metaColumn, resultSet.getObject(metaColumn));
+                    for (String metadataColumn : metadataColumns) {
+                        if (resultSet.getObject(metadataColumn) != null) {
+                            System.out.println(resultSet.getObject(metadataColumn));
+                            metadataMap.put(metadataColumn, resultSet.getObject(metadataColumn));
                         }
                     }
 
                     if (isNotNullOrBlank(metadataJsonColumn)) {
                         String metadataJsonString = getOrDefault(resultSet.getString(metadataJsonColumn), "{}");
+                        System.out.println(metadataJsonString);
                         Map<String, Object> metadataJsonMap = OBJECT_MAPPER.readValue(metadataJsonString, Map.class);
                         metadataMap.putAll(metadataJsonMap);
                     }
 
                     Metadata metadata = Metadata.from(metadataMap);
 
-                    TextSegment embedded = new TextSegment(embeddedText, metadata);
+                    TextSegment embedded = embeddedText != null ? new TextSegment(embeddedText, metadata) : null;
 
                     embeddingMatches.add(new EmbeddingMatch<>(score, embeddingId, embedding, embedded));
                 }
