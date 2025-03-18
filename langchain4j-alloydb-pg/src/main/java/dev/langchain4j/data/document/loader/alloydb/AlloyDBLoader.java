@@ -1,5 +1,12 @@
 package dev.langchain4j.data.document.loader.alloydb;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.langchain4j.data.document.DefaultDocument;
+import dev.langchain4j.data.document.Document;
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.engine.AlloyDBEngine;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,20 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import dev.langchain4j.data.document.DefaultDocument;
-import dev.langchain4j.data.document.Document;
-import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.engine.AlloyDBEngine;
-
 /**
- * Loads data from AlloyDB.
- * <br>
- * The data in different formats is returned in form of {@link Document}.
- *
+ * AlloyDBLoader
+ * <p>
+ * This loader allows you to retrieve data from AlloyDB using either a custom
+ * SQL query or a table name. You can specify which columns should be used for
+ * the document's content and which for its metadata. Additionally, you can
+ * format the content using predefined formats (CSV, text, JSON, YAML) or a
+ * custom formatter. Metadata can be loaded from specified columns or from a
+ * JSON column.
+ * </p>
  */
 public class AlloyDBLoader {
 
@@ -45,6 +48,9 @@ public class AlloyDBLoader {
         this.metadataJsonColumn = builder.metadataJsonColumn;
     }
 
+    /**
+     * Builder for {@link AlloyDBLoader}.
+     */
     public static class Builder {
 
         private final AlloyDBEngine engine;
@@ -57,50 +63,117 @@ public class AlloyDBLoader {
         private String format;
         private BiFunction<Map<String, Object>, List<String>, String> formatter;
 
+        /**
+         * Constructs a new Builder with the specified AlloyDB engine.
+         *
+         * @param engine The AlloyDB engine to use.
+         */
         public Builder(AlloyDBEngine engine) {
             this.engine = engine;
         }
 
+        /**
+         * Sets the schema name for the table. Defaults to "public".
+         *
+         * @param schemaName The schema name.
+         * @return This Builder.
+         */
         public Builder schemaName(String schemaName) {
             this.schemaName = schemaName;
             return this;
         }
 
+        /**
+         * Sets the SQL query to execute. If not provided, a default query is
+         * generated from the table name.
+         *
+         * @param query The SQL query.
+         * @return This Builder.
+         */
         public Builder query(String query) {
             this.query = query;
             return this;
         }
 
+        /**
+         * Sets the table name to load data from. If not provided, a custom
+         * query must be specified.
+         *
+         * @param tableName The table name.
+         * @return This Builder.
+         */
         public Builder tableName(String tableName) {
             this.tableName = tableName;
             return this;
         }
 
+        /**
+         * Sets a custom formatter to convert row data into document content.
+         *
+         * @param formatter The formatter function.
+         * @return This Builder.
+         */
         public Builder formatter(BiFunction<Map<String, Object>, List<String>, String> formatter) {
             this.formatter = formatter;
             return this;
         }
 
+        /**
+         * Sets the format for the document content. Predefined formats are
+         * "csv", "text", "JSON", and "YAML". Only one of format or formatter
+         * should be specified.
+         *
+         * @param format The format string.
+         * @return This Builder.
+         */
         public Builder format(String format) {
             this.format = format;
             return this;
         }
 
+        /**
+         * Sets the list of columns to use for the document content.
+         *
+         * @param contentColumns The content column names.
+         * @return This Builder.
+         */
         public Builder contentColumns(List<String> contentColumns) {
             this.contentColumns = contentColumns;
             return this;
         }
 
+        /**
+         * Sets the list of columns to use for the document metadata.
+         *
+         * @param metadataColumns The metadata column names.
+         * @return This Builder.
+         */
         public Builder metadataColumns(List<String> metadataColumns) {
             this.metadataColumns = metadataColumns;
             return this;
         }
 
+        /**
+         * Sets the column name containing JSON metadata.
+         *
+         * @param metadataJsonColumn The JSON metadata column name.
+         * @return This Builder.
+         */
         public Builder metadataJsonColumn(String metadataJsonColumn) {
             this.metadataJsonColumn = metadataJsonColumn;
             return this;
         }
 
+        /**
+         * Builds an {@link AlloyDBLoader} with the configuration applied to
+         * this builder.
+         *
+         * @return The built {@link AlloyDBLoader} instance.
+         * @throws IllegalArgumentException if neither query nor tableName is
+         * specified, or if both format and formatter are specified, or if
+         * specified column not found.
+         * @throws SQLException if a database error occurs.
+         */
         public AlloyDBLoader build() throws SQLException {
             if ((this.query == null || this.query.isEmpty()) && (this.tableName == null || this.tableName.isEmpty())) {
                 throw new IllegalArgumentException("Either query or tableName must be specified.");
@@ -135,7 +208,8 @@ public class AlloyDBLoader {
             }
 
             List<String> columnNames = new ArrayList<>();
-            try (Connection pool = engine.getConnection(); PreparedStatement statement = pool.prepareStatement(query)) {
+            try (Connection pool = engine.getConnection();
+                    PreparedStatement statement = pool.prepareStatement(query)) {
                 statement.setMaxRows(1);
                 ResultSet resultSet = statement.executeQuery();
                 for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
@@ -143,8 +217,8 @@ public class AlloyDBLoader {
                 }
             }
 
-            contentColumns
-                    = contentColumns == null || contentColumns.isEmpty() ? List.of(columnNames.get(0)) : contentColumns;
+            contentColumns =
+                    contentColumns == null || contentColumns.isEmpty() ? List.of(columnNames.get(0)) : contentColumns;
             metadataColumns = metadataColumns == null || metadataColumns.isEmpty()
                     ? columnNames.stream()
                             .filter(col -> !contentColumns.contains(col))
@@ -171,6 +245,13 @@ public class AlloyDBLoader {
         }
     }
 
+    /**
+     * Formats the row data into a text string.
+     *
+     * @param row The row data as a map of column names to values.
+     * @param contentColumns The list of columns to use for content.
+     * @return The formatted text string.
+     */
     private static String textFormatter(Map<String, Object> row, List<String> contentColumns) {
         StringBuilder sb = new StringBuilder();
         for (String column : contentColumns) {
@@ -181,6 +262,13 @@ public class AlloyDBLoader {
         return sb.toString().trim();
     }
 
+    /**
+     * Formats the row data into a CSV string.
+     *
+     * @param row The row data as a map of column names to values.
+     * @param contentColumns The list of columns to use for content.
+     * @return The formatted CSV string.
+     */
     private static String csvFormatter(Map<String, Object> row, List<String> contentColumns) {
         StringBuilder sb = new StringBuilder();
         for (String column : contentColumns) {
@@ -191,6 +279,13 @@ public class AlloyDBLoader {
         return sb.toString().trim().replaceAll(", $", ""); // Remove trailing comma
     }
 
+    /**
+     * Formats the row data into a YAML string.
+     *
+     * @param row The row data as a map of column names to values.
+     * @param contentColumns The list of columns to use for content.
+     * @return The formatted YAML string.
+     */
     private static String yamlFormatter(Map<String, Object> row, List<String> contentColumns) {
         StringBuilder sb = new StringBuilder();
         for (String column : contentColumns) {
@@ -201,6 +296,13 @@ public class AlloyDBLoader {
         return sb.toString().trim();
     }
 
+    /**
+     * Formats the row data into a JSON string.
+     *
+     * @param row The row data as a map of column names to values.
+     * @param contentColumns The list of columns to use for content.
+     * @return The formatted JSON string.
+     */
     private static String jsonFormatter(Map<String, Object> row, List<String> contentColumns) {
         ObjectNode json = objectMapper.createObjectNode();
         for (String column : contentColumns) {
@@ -212,14 +314,28 @@ public class AlloyDBLoader {
     }
 
     /**
-     * Loads data from AlloyDB in form of {@code Document}.
+     * Executes the configured SQL query against the AlloyDB database and
+     * transforms the result set into a list of {@link Document} objects.
+     * <p>
+     * Each row in the result set is processed according to the configured
+     * content columns, metadata columns, and formatter. The content is
+     * extracted and formatted, and metadata is assembled from the specified
+     * columns or the JSON metadata column.
+     * </p>
      *
-     * @return List<Document> list of documents
-     * @throws SQLException if databse error occurs
+     * @return A list of {@link Document} objects, where each document
+     * represents a row from the database result set.
+     * @throws SQLException If a database error occurs during the execution of
+     * the query or while processing the result set. This could include issues
+     * such as connection problems, SQL syntax errors, or data retrieval
+     * failures.
+     * @throws RuntimeException If there's an error parsing the JSON metadata
+     * column, indicating an issue with the JSON structure.
      */
     public List<Document> load() throws SQLException {
         List<Document> documents = new ArrayList<>();
-        try (Connection pool = engine.getConnection(); PreparedStatement statement = pool.prepareStatement(query)) {
+        try (Connection pool = engine.getConnection();
+                PreparedStatement statement = pool.prepareStatement(query)) {
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 Map<String, Object> rowData = new HashMap<>();
@@ -239,6 +355,12 @@ public class AlloyDBLoader {
         return documents;
     }
 
+    /**
+     * Parses a {@link Document} from a row of data.
+     *
+     * @param row The row data as a map of column names to values.
+     * @return The parsed Document.
+     */
     private Document parseDocFromRow(Map<String, Object> row) {
         String pageContent = formatter.apply(row, contentColumns);
         Map<String, Object> metaDataMap = new HashMap<>();
@@ -249,7 +371,7 @@ public class AlloyDBLoader {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(
                         "Failed to parse JSON: " + e.getMessage()
-                        + ". Ensure metadata JSON structure matches the expected format.",
+                                + ". Ensure metadata JSON structure matches the expected format.",
                         e);
             }
         }

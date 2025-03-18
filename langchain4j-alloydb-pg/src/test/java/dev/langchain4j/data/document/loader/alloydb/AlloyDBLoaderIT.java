@@ -50,7 +50,7 @@ public class AlloyDBLoaderIT {
                 .database(database)
                 .user(user)
                 .password(password)
-                .ipType("PUBLIC")
+                .ipType("public")
                 .build();
         connection = engine.getConnection();
     }
