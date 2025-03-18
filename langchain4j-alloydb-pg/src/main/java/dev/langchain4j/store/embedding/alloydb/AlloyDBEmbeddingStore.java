@@ -276,7 +276,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public void removeAll(Collection<String> ids) {
         if (ids == null || ids.isEmpty()) {
-            throw new IllegalArgumentException("ids must not be null or empty");
+            throw new IllegalArgumentException("ids cannot be null or empty");
         }
 
         String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s = ANY(?)", schemaName, tableName, idColumn);
