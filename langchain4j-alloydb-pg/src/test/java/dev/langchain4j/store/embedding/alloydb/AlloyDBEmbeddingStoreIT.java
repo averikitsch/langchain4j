@@ -69,6 +69,7 @@ public class AlloyDBEmbeddingStoreIT {
 
         engine = new AlloyDBEngine.Builder()
                 .host("127.0.0.1")
+                .port(5433)
                 .database(database)
                 .user(user)
                 .password(password)
