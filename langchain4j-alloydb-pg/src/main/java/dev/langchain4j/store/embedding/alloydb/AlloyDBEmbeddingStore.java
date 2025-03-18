@@ -335,6 +335,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     "INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)",
                     schemaName, tableName, idColumn, embeddingColumn, contentColumn, metadataColumnNames, placeholders);
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                PGvector.registerTypes(connection);
                 for (int i = 0; i < ids.size(); i++) {
                     String id = ids.get(i);
                     Embedding embedding = embeddings.get(i);

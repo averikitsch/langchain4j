@@ -11,7 +11,6 @@ import com.google.cloud.alloydb.ConnectorRegistry;
 import com.google.cloud.alloydb.RefreshStrategy;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.pgvector.PGvector;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
@@ -152,19 +151,17 @@ public class AlloyDBEngine {
      */
     public Connection getConnection() throws SQLException {
         Connection connection = dataSource.getConnection();
-        PGvector.addVectorType(connection);
         return connection;
     }
 
     /**
-     * @param embeddingStoreConfig contains the parameters necesary to intialize
+     * @param embeddingStoreConfig contains the parameters necessary to initialize
      * the Vector table
      */
     public void initVectorStoreTable(EmbeddingStoreConfig embeddingStoreConfig) {
         try (Connection connection = getConnection(); ) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
-            PGvector.addVectorType(connection);
 
             if (embeddingStoreConfig.getOverwriteExisting()) {
                 statement.executeUpdate(String.format(
