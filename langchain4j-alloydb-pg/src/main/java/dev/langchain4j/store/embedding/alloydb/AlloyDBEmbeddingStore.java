@@ -367,6 +367,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                             preparedStatement.setObject(j + 4, null);
                         }
                     }
+                    System.out.println(preparedStatement.toArray().toString());
                     preparedStatement.addBatch();
                 }
                 preparedStatement.executeBatch();
