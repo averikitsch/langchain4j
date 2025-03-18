@@ -6,6 +6,9 @@ import static dev.langchain4j.internal.Utils.readBytes;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.alloydb.ConnectorConfig;
+import com.google.cloud.alloydb.ConnectorRegistry;
+import com.google.cloud.alloydb.RefreshStrategy;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
@@ -15,7 +18,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.stream.Collectors;
-import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,12 +28,14 @@ import org.slf4j.LoggerFactory;
  * </p>{@code
  * AlloyDBEngine engine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database).build();
  * }
- * Uses HikariCP as a DataSource. A connection pool tath will avoid the latency of repeatedly creating new database connections.
+ * Uses HikariCP as a DataSource. A connection pool that will avoid the latency of repeatedly creating new database connections.
  */
 public class AlloyDBEngine {
 
+    private static final String USER_AGENT = "langchain4j-alloydb-pg";
     private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
-    private final DataSource dataSource;
+    private static ConnectorConfig namedConnectorConfig;
+    private final HikariDataSource dataSource;
 
     /**
      * Constructor for AlloyDBEngine
@@ -39,51 +43,87 @@ public class AlloyDBEngine {
      * @param builder builder.
      */
     public AlloyDBEngine(Builder builder) {
-        Boolean enableIAMAuth;
-        String authId = builder.user;
-        if (isNullOrBlank(authId) && isNullOrBlank(builder.password)) {
-            enableIAMAuth = true;
-            if (isNotNullOrBlank(builder.iamAccountEmail)) {
-                log.debug("Found iamAccountEmail");
-                authId = builder.iamAccountEmail;
-            } else {
-                log.debug("Retrieving IAM principal email");
-                authId = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
-            }
-        } else if (isNotNullOrBlank(authId) && isNotNullOrBlank(builder.password)) {
-            enableIAMAuth = false;
-            log.debug("Found user and password, IAM Auth disabled");
-        } else {
+        if (isNotNullOrBlank(builder.host)
+                && (isNotNullOrBlank(builder.projectId) || isNotNullOrBlank(builder.cluster))) {
             throw new IllegalStateException(
-                    "Either one of user or password is blank, expected both user and password to be valid credentials or empty");
+                    "Connect directly to an instance using projectId, region, cluster, instance, and database params or connect via an IP Address using host, user, password, and database params");
         }
-        String instanceName = new StringBuilder("projects/")
-                .append(ensureNotBlank(builder.projectId, "projectId"))
-                .append("/locations/")
-                .append(ensureNotBlank(builder.region, "region"))
-                .append("/clusters/")
-                .append(ensureNotBlank(builder.cluster, "cluster"))
-                .append("/instances/")
-                .append(ensureNotBlank(builder.instance, "instance"))
-                .toString();
-        dataSource = createDataSource(
-                builder.database, authId, builder.password, instanceName, builder.ipType, enableIAMAuth);
+
+        if (isNotNullOrBlank(builder.cluster)) {
+            Boolean enableIAMAuth;
+            String authId = builder.user;
+            if (isNullOrBlank(authId) && isNullOrBlank(builder.password)) {
+                enableIAMAuth = true;
+                if (isNotNullOrBlank(builder.iamAccountEmail)) {
+                    log.debug("Found iamAccountEmail");
+                    authId = builder.iamAccountEmail;
+                } else {
+                    log.debug("Retrieving IAM principal email");
+                    authId = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
+                }
+            } else if (isNotNullOrBlank(authId) && isNotNullOrBlank(builder.password)) {
+                enableIAMAuth = false;
+                log.debug("Found user and password, IAM Auth disabled");
+            } else {
+                throw new IllegalStateException(
+                        "Either one of user or password is blank, expected both user and password to be valid credentials or empty");
+            }
+            String instanceName = new StringBuilder("projects/")
+                    .append(ensureNotBlank(builder.projectId, "projectId"))
+                    .append("/locations/")
+                    .append(ensureNotBlank(builder.region, "region"))
+                    .append("/clusters/")
+                    .append(ensureNotBlank(builder.cluster, "cluster"))
+                    .append("/instances/")
+                    .append(ensureNotBlank(builder.instance, "instance"))
+                    .toString();
+            dataSource = createConnectorDataSource(
+                    builder.database, authId, builder.password, instanceName, builder.ipType, enableIAMAuth);
+        } else {
+            dataSource =
+                    createUrlDataSource(builder.database, builder.user, builder.password, builder.host, builder.port);
+        }
     }
 
-    private HikariDataSource createDataSource(
+    private HikariDataSource createConnectorDataSource(
             String database, String user, String password, String instanceName, String ipType, Boolean enableIAMAuth) {
+        if (namedConnectorConfig == null) {
+            namedConnectorConfig = new ConnectorConfig.Builder()
+                    .withRefreshStrategy(RefreshStrategy.LAZY)
+                    .build();
+            ConnectorRegistry.addArtifactId(USER_AGENT);
+            ConnectorRegistry.register("langchain-connector", namedConnectorConfig);
+        }
+
         HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(String.format("jdbc:postgresql:///%s", ensureNotBlank(database, "database")));
         config.setUsername(ensureNotBlank(user, "user"));
         if (enableIAMAuth) {
             config.addDataSourceProperty("alloydbEnableIAMAuth", "true");
         } else {
             config.setPassword(ensureNotBlank(password, "password"));
         }
-        config.setJdbcUrl(String.format("jdbc:postgresql:///%s", ensureNotBlank(database, "database")));
         config.addDataSourceProperty("socketFactory", "com.google.cloud.alloydb.SocketFactory");
         config.addDataSourceProperty("alloydbInstanceName", ensureNotBlank(instanceName, "instanceName"));
         config.addDataSourceProperty("alloydbIpType", ensureNotBlank(ipType, "ipType"));
+        config.addDataSourceProperty("alloydbNamedConnector", "langchain-connector");
+        return new HikariDataSource(config);
+    }
 
+    private HikariDataSource createUrlDataSource(
+            String database, String user, String password, String host, Integer port) {
+        HikariConfig config = new HikariConfig();
+        // The following URL is equivalent to setting the config options below:
+        // jdbc:postgresql://<INSTANCE_HOST>:<DB_PORT>/<DB_NAME>?user=<DB_USER>&password=<DB_PASS>
+        // See the link below for more info on building a JDBC URL for the Cloud SQL JDBC Socket Factory
+        // https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory#creating-the-jdbc-url
+
+        // Configure which instance and what database user to connect with.
+        config.setJdbcUrl(String.format(
+                "jdbc:postgresql://%s:%d/%s",
+                ensureNotBlank(host, "host"), port, ensureNotBlank(database, "database")));
+        config.setUsername(ensureNotBlank(user, "user"));
+        config.setPassword(ensureNotBlank(password, "password"));
         return new HikariDataSource(config);
     }
 
@@ -165,42 +205,81 @@ public class AlloyDBEngine {
     }
 
     /**
-     * to be documented
+     * Closes a Connection
      */
-    public void initChatHistoryTable() {
-        // to be implemented
+    public void close() {
+        dataSource.close();
     }
 
     /**
      * Builder which configures and creates instances of {@link AlloyDBEngine}.
+     * Connect directly to an instance using projectId, region, cluster, instance, and database params
+     * (Optional: user/password, iamAccountEmail, ipType)
+     * or connect via an IP Address using host, user, password, and database params
+     * (Optional: port)
      */
     public static class Builder {
 
-        private final String projectId;
-        private final String region;
-        private final String cluster;
-        private final String instance;
-        private final String database;
-        // Optional
+        private String projectId;
+        private String region;
+        private String cluster;
+        private String instance;
+        private String database;
+        private String host;
+        private Integer port = 5432;
         private String user;
         private String password;
         private String ipType = "public";
         private String iamAccountEmail;
 
         /**
-         * Constructor for builder
-         * @param projectId (Required) AlloyDB project id
-         * @param region (Required) AlloyDB cluster region
-         * @param cluster (Required) AlloyDB cluster
-         * @param instance (Required) AlloyDB instance
-         * @param database (Required) AlloyDB database
+         * Creates a new {@code Builder} instance.
          */
-        public Builder(String projectId, String region, String cluster, String instance, String database) {
+        public Builder() {}
+
+        /**
+         * @param projectId (Optional) AlloyDB database projectId
+         * @return this builder
+         */
+        public Builder projectId(String projectId) {
             this.projectId = projectId;
-            this.region = region;
-            this.cluster = cluster;
+            return this;
+        }
+
+        /**
+         * @param instance (Optional) AlloyDB database instance
+         * @return this builder
+         */
+        public Builder instance(String instance) {
             this.instance = instance;
+            return this;
+        }
+
+        /**
+         * @param region (Optional) AlloyDB database region
+         * @return this builder
+         */
+        public Builder region(String region) {
+            this.region = region;
+            return this;
+        }
+
+        /**
+         * @param cluster (Optional) AlloyDB database cluster
+         * @return this builder
+         */
+        public Builder cluster(String cluster) {
+            this.cluster = cluster;
+            return this;
+        }
+
+        /**
+         * @param database (Optional) AlloyDB database database
+         * @return this builder
+         */
+        public Builder database(String database) {
             this.database = database;
+            return this;
         }
 
         /**
@@ -236,6 +315,24 @@ public class AlloyDBEngine {
          */
         public Builder iamAccountEmail(String iamAccountEmail) {
             this.iamAccountEmail = iamAccountEmail;
+            return this;
+        }
+
+        /**
+         * @param host (Optional) AlloyDB database host
+         * @return this builder
+         */
+        public Builder host(String host) {
+            this.host = host;
+            return this;
+        }
+
+        /**
+         * @param port (Optional) AlloyDB database port
+         * @return this builder
+         */
+        public Builder port(Integer port) {
+            this.port = port;
             return this;
         }
 

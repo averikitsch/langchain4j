@@ -58,7 +58,9 @@ public class AlloyDBEmbeddingStoreIT {
         user = System.getenv("ALLOYDB_USER");
         password = System.getenv("ALLOYDB_PASSWORD");
 
-        engine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
+        engine = new AlloyDBEngine.Builder()
+                .host("127.0.0.1")
+                .database(database)
                 .user(user)
                 .password(password)
                 .build();

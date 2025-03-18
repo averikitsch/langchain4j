@@ -47,7 +47,12 @@ public class AlloyDBEngineIT {
         password = System.getenv("ALLOYDB_PASSWORD");
         iamEmail = System.getenv("ALLOYDB_IAM_EMAIL");
 
-        engine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
+        engine = new AlloyDBEngine.Builder()
+                .projectId(projectId)
+                .region(region)
+                .cluster(cluster)
+                .instance(instance)
+                .database(database)
                 .user(user)
                 .password(password)
                 .ipType("public")
@@ -78,7 +83,7 @@ public class AlloyDBEngineIT {
 
     @AfterAll
     public static void afterAll() throws SQLException {
-        defaultConnection.close();
+        engine.close();
     }
 
     @Test
@@ -183,7 +188,12 @@ public class AlloyDBEngineIT {
 
     @Test
     void create_engine_with_iam_auth() throws SQLException {
-        AlloyDBEngine iamEngine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database)
+        AlloyDBEngine iamEngine = new AlloyDBEngine.Builder()
+                .projectId(projectId)
+                .region(region)
+                .cluster(cluster)
+                .instance(instance)
+                .database(database)
                 .iamAccountEmail(iamEmail)
                 .build();
         try (Connection connection = iamEngine.getConnection(); ) {
@@ -195,7 +205,13 @@ public class AlloyDBEngineIT {
 
     @Test
     void create_engine_with_get_iam_email() throws SQLException {
-        AlloyDBEngine iamEngine = new AlloyDBEngine.Builder(projectId, region, cluster, instance, database).build();
+        AlloyDBEngine iamEngine = new AlloyDBEngine.Builder()
+                .projectId(projectId)
+                .region(region)
+                .cluster(cluster)
+                .instance(instance)
+                .database(database)
+                .build();
         try (Connection connection = iamEngine.getConnection(); ) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
