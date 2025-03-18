@@ -108,7 +108,7 @@ public class AlloyDBEngine {
         config.addDataSourceProperty("alloydbInstanceName", ensureNotBlank(instanceName, "instanceName"));
         config.addDataSourceProperty("alloydbIpType", ensureNotBlank(ipType, "ipType"));
         config.addDataSourceProperty("alloydbNamedConnector", "langchain-connector");
-        dataSource = new HikariDataSource(config)
+        dataSource = new HikariDataSource(config);
         dataSource.setMaximumPoolSize(1);
         return dataSource;
     }
