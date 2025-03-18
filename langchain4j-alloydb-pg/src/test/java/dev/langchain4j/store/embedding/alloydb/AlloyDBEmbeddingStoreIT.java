@@ -48,11 +48,23 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     @Override
     protected void ensureStoreIsReady() {
+        List<MetadataColumn> metadataColumns = new ArrayList<>();
+        metadataColumns.add(new MetadataColumn("name", "text", true));
+        metadataColumns.add(new MetadataColumn("name2", "text", true));
+        metadataColumns.add(new MetadataColumn("city", "text", true));
+        metadataColumns.add(new MetadataColumn("age", "integer", true));
+
         engine.initVectorStoreTable(new EmbeddingStoreConfig.Builder(tableName, 384)
+                .metadataColumns(metadataColumns)
                 .overwriteExisting(true)
                 .build());
+
+        List<String> metaColumnNames =
+                metadataColumns.stream().map(c -> c.getName()).collect(Collectors.toList());
+
         embeddingStore = new AlloyDBEmbeddingStore.Builder(engine, tableName)
                 .distanceStrategy(DistanceStrategy.COSINE_DISTANCE)
+                .metadataColumns(metadataColumnNames)
                 .build();
     }
 

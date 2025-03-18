@@ -147,7 +147,7 @@ public class AlloyDBEngineIT {
     @Test
     void create_from_existing_fails_if_table_not_present() {
         EmbeddingStoreConfig initParameters = new EmbeddingStoreConfig.Builder(TABLE_NAME, VECTOR_SIZE)
-                .overwriteExisting(true)
+                // .overwriteExisting(true)
                 .storeMetadata(false)
                 .build();
 
