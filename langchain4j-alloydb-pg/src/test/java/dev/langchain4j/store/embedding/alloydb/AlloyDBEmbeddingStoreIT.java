@@ -8,13 +8,14 @@ import dev.langchain4j.engine.EmbeddingStoreConfig;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.EmbeddingStoreWithFileringIT;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class AlloyDBEmbeddingStoreIT extends S {
+public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     @Container
     static PostgreSQLContainer<?> pgVector =
