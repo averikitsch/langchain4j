@@ -246,6 +246,13 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     String embeddedText = resultSet.getString(contentColumn);
                     System.out.println(resultSet.toString());
+                    ResultSetMetaData rsmd = resultSet.getMetaData();
+                    int columnsNumber = rsmd.getColumnCount();
+                    for (int i = 1; i <= columnsNumber; i++) {
+                        if (i > 1) System.out.print(",  ");
+                        String columnValue = resultSet.getString(i);
+                        System.out.print(columnValue + " " + rsmd.getColumnName(i));
+                    }
                     Map<String, Object> metadataMap = new HashMap<>();
 
                     for (String metaColumn : metadataColumns) {

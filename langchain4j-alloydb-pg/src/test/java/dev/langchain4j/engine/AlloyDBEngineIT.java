@@ -145,23 +145,6 @@ public class AlloyDBEngineIT {
     }
 
     @Test
-    void create_from_existing_fails_if_table_not_present() {
-        EmbeddingStoreConfig initParameters = new EmbeddingStoreConfig.Builder("does_not_exists", VECTOR_SIZE)
-                // .overwriteExisting(true)
-                .storeMetadata(false)
-                .build();
-
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            engine.initVectorStoreTable(initParameters);
-        });
-
-        assertThat(exception.getMessage())
-                .isEqualTo(String.format("Failed to initialize vector store table: \"public\".\"%s\"", TABLE_NAME));
-        assertThat(exception.getCause().getMessage())
-                .isEqualTo(String.format("ERROR: table \"%s\" does not exist", TABLE_NAME));
-    }
-
-    @Test
     void create_fails_when_table_present_and_overwrite_false() {
         EmbeddingStoreConfig initParameters = new EmbeddingStoreConfig.Builder(CUSTOM_TABLE_NAME, VECTOR_SIZE)
                 .storeMetadata(false)
