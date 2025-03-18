@@ -20,13 +20,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public class AlloyDBLoaderIT {
 
-    private static String projectId;
-    private static String region;
-    private static String cluster;
-    private static String instance;
-    private static String database;
-    private static String user;
-    private static String password;
+    @Container
+    static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
 
     private static AlloyDBEngine engine;
     private static Connection connection;

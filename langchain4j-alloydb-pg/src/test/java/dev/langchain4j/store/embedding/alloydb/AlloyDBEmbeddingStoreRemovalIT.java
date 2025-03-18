@@ -31,9 +31,7 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     EmbeddingStore<TextSegment> embeddingStore;
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
-    @Override
     protected void ensureStoreIsReady() {
-
         engine.initVectorStoreTable(new EmbeddingStoreConfig.Builder(tableName, 384).build());
 
         embeddingStore = new AlloyDBEmbeddingStore.Builder(engine, tableName)
