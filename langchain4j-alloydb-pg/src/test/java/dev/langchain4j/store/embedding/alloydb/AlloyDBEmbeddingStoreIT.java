@@ -5,6 +5,7 @@ import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nex
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.engine.AlloyDBEngine;
 import dev.langchain4j.engine.EmbeddingStoreConfig;
+import dev.langchain4j.engine.MetadataColumn;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
