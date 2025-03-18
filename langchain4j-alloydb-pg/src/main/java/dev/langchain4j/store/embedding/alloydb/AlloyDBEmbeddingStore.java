@@ -26,7 +26,6 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -246,13 +245,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     String embeddedText = resultSet.getString(contentColumn);
 
-                    ResultSetMetaData rsmd = resultSet.getMetaData();
-                    int columnsNumber = rsmd.getColumnCount();
-                    for (int i = 1; i <= columnsNumber; i++) {
-                        if (i > 1) System.out.print(",  ");
-                        // String columnValue = resultSet.getString(i);
-                        System.out.print(rsmd.getColumnName(i));
-                    }
                     Map<String, Object> metadataMap = new HashMap<>();
 
                     for (String metaColumn : metadataColumns) {
@@ -339,6 +331,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             String query = String.format(
                     "INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)",
                     schemaName, tableName, idColumn, embeddingColumn, contentColumn, metadataColumnNames, placeholders);
+            System.out.println(query);
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 for (int i = 0; i < ids.size(); i++) {
                     String id = ids.get(i);
