@@ -1,6 +1,6 @@
 package dev.langchain4j.store.embedding.alloydb;
 
-import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
+import tatic org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.engine.AlloyDBEngine;
@@ -14,19 +14,16 @@ import dev.langchain4j.store.embedding.index.DistanceStrategy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;import rg.junitjupiter.api.BeforeAll;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
 public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
-
     // Does support WithFilteringIT but can not handle different age data types.
 
-    @Container
-    static PostgreSQLContainer<?> pgVector =
+    @Container    static PostgreSQLContainer<?> pgVector =
             new PostgreSQLContainer<>("pgvector/pgvector:pg15").withCommand("postgres -c max_connections=100");
 
     final String tableName = "test" + nextInt(2000, 3000);
@@ -34,16 +31,12 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
     EmbeddingStore<TextSegment> embeddingStore;
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
-    @BeforeAll
-    public static void startEngine() {
+    @BeforeAll    pubic stati void startEngine() {
         if (engine == null) {
-            engine = new AlloyDBEngine.Builder()
-                    .host(pgVector.getHost())
-                    .port(pgVector.getFirstMappedPort())
+            engine = n                               .port(pgVector.getFirstMappedPort())
                     .user("test")
                     .password("test")
-                    .database("test")
-                    .build();
+                    .d                  .build();
         }
     }
 
@@ -53,10 +46,10 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
     }
 
     @Override
-    protected void ensureStoreIsReady() {
-        List<MetadataColumn> metadataColumns = new ArrayList<>();
+
+           List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("name", "text", true));
-        metadataColumns.add(new MetadataColumn("name2", "text", true));
+            metadataColumns.add(new MetadataColumn("name2", "text", true));
         metadataColumns.add(new MetadataColumn("city", "text", true));
         metadataColumns.add(new MetadataColumn("age", "integer", true));
 
@@ -68,12 +61,13 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
         List<String> metadataColumnNames =
                 metadataColumns.stream().map(c -> c.getName()).collect(Collectors.toList());
 
-        embeddingStore = new AlloyDBEmbeddingStore.Builder(engine, tableName)
-                .distanceStrategy(DistanceStrategy.COSINE_DISTANCE)
+        embeddingStore = new AlloyD       
+
+            .distanceStrategy(DistanceStrategy.COSINE_DISTANCE)
                 .metadataColumns(metadataColumnNames)
                 .build();
-    }
-
+    } 
+            
     @Override
     protected EmbeddingStore<TextSegment> embeddingStore() {
         if (embeddingStore == null) {
@@ -87,3 +81,44 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
         return embeddingModel;
     }
 }
+
+    
+                
+
+    
+
+    
+
+    
+                    
+                            
+                            
+
+    
+
+    
+
+    
+                    
+                            
+                            
+                
+                        
+                    
+                             
+                             
+                             
+                         
+                        
+            
+                
+                
+                        
+                    
+                             
+                             
+                             
+                         
+                        
+                
+                        

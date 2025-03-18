@@ -152,6 +152,7 @@ public class AlloyDBEngine {
      */
     public Connection getConnection() throws SQLException {
         Connection connection = dataSource.getConnection();
+        PGvector.addVectorType(connection);
         return connection;
     }
 
