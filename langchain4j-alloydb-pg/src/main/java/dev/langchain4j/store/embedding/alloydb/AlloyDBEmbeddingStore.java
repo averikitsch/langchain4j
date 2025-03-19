@@ -418,7 +418,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             String concurrentlyString = concurrently ? "CONCURRENTLY" : "";
 
             String stmt = String.format(
-                    "CREATE INDEX %s %s ON \"%s\".\"%s\" USING %s (%s %s %s %s);",
+                    "CREATE INDEX %s %s ON \"%s\".\"%s\" USING %s (%s %s) %s %s;",
                     concurrentlyString,
                     name,
                     schemaName,
