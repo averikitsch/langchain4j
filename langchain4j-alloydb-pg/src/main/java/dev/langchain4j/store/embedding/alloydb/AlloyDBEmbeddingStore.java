@@ -392,8 +392,10 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      */
     public void applyVectorIndex(BaseIndex index, String name, Boolean concurrently) {
         String function;
-        if (index == null) throw new IllegalStateException("Cannot apply provided index because it is null.");
-
+        if (index == null) {
+            dropVectorIndex(null);
+            return;
+        }
         try (Connection conn = engine.getConnection(); ) {
             if (index instanceof ScaNNIndex scaNNIndex) {
                 conn.createStatement().executeQuery("CREATE EXTENSION IF NOT EXISTS alloydb_scann");
@@ -434,6 +436,23 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when creating " + name + " index in vector store table: \"" + schemaName + "\".\""
+                            + tableName + "\"",
+                    ex);
+        }
+    }
+
+    /**
+     * remove index from the vector store table
+     * @param name, name of the index
+     */
+    public void dropVectorIndex(String name) {
+        name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
+        String query = String.format("DROP INDEX IF EXISTS %s", name);
+        try (Connection conn = engine.getConnection(); ) {
+            conn.createStatement().executeQuery(query);
+        } catch (SQLException ex) {
+            throw new RuntimeException(
+                    "Exception caught when removing " + name + " index in vector store table: \"" + schemaName + "\".\""
                             + tableName + "\"",
                     ex);
         }
