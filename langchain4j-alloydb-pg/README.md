@@ -187,31 +187,4 @@ import dev.langchain4j.engine.AlloyDBLoader;
 
    ```
 
-Contributions
--------------
-
-Contributions to this library are always welcome and highly encouraged.
-
-See `CONTRIBUTING`_ and `DEVELOPER`_ for more information how to get started.
-
-Please note that this project is released with a Contributor Code of Conduct. By participating in
-this project you agree to abide by its terms. See `Code of Conduct`_ for more
-information.
-
-.. _`CONTRIBUTING`: https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/CONTRIBUTING.md
-.. _`DEVELOPER`: https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/DEVELOPER.md
-.. _`Code of Conduct`: https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/CODE_OF_CONDUCT.md
-
-License
--------
-
-Apache 2.0 - See
-`LICENSE <https://github.com/googleapis/langchain-google-alloydb-pg-python/tree/main/LICENSE>`_
-for more information.
-
-Disclaimer
-----------
-
-This is not an officially supported Google product.
-
 
