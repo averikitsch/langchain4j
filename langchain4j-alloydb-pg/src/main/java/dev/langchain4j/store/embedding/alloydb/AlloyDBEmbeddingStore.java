@@ -4,6 +4,7 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -391,12 +392,18 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      */
     public void applyVectorIndex(BaseIndex index, String name, Boolean concurrently) {
         String function;
-        name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
-        
         if (index == null) {
             dropVectorIndex(null);
             return;
         }
+        if (isNullOrBlank(name)) {
+            if (isNotNullOrBlank(index.getName())) {
+                name = index.getName();
+            } else {
+                name = tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
+            }
+        }
+
         try (Connection conn = engine.getConnection(); ) {
             if (index instanceof ScaNNIndex scaNNIndex) {
                 conn.createStatement().executeQuery("CREATE EXTENSION IF NOT EXISTS alloydb_scann");
@@ -463,8 +470,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             conn.createStatement().executeQuery(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
-                    "Exception caught when reindexing " + name + " index in vector store table: \"" + schemaName + "\".\""
-                            + tableName + "\"",
+                    "Exception caught when reindexing " + name + " index in vector store table: \"" + schemaName
+                            + "\".\"" + tableName + "\"",
                     ex);
         }
     }
