@@ -396,6 +396,14 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             dropVectorIndex(null);
             return;
         }
+        if (isNullOrBlank(name)) {
+            if (isNotNullOrBlank(index.getName())) {
+                name = index.getName();
+            } else {
+                name = tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
+            }
+        }
+
         try (Connection conn = engine.getConnection(); ) {
             if (index instanceof ScaNNIndex scaNNIndex) {
                 conn.createStatement().executeQuery("CREATE EXTENSION IF NOT EXISTS alloydb_scann");
@@ -410,13 +418,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     : "";
             String params = String.format("WITH %s", index.getIndexOptions());
 
-            if (isNullOrBlank(name)) {
-                if (isNullOrBlank(index.getName())) {
-                    name = tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
-                } else {
-                    name = index.getName();
-                }
-            }
             String concurrentlyString = concurrently ? "CONCURRENTLY" : "";
 
             String stmt = String.format(
@@ -447,13 +448,30 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      */
     public void dropVectorIndex(String name) {
         name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
-        String query = String.format("DROP INDEX IF EXISTS %s", name);
+        String query = String.format("DROP INDEX IF EXISTS %s;", name);
         try (Connection conn = engine.getConnection(); ) {
             conn.createStatement().executeQuery(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when removing " + name + " index in vector store table: \"" + schemaName + "\".\""
                             + tableName + "\"",
+                    ex);
+        }
+    }
+
+    /**
+     * re-index thevector store table
+     * @param name, name of the index
+     */
+    public void reindex(String name) {
+        name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
+        String query = String.format("REINDEX INDEX %s;", name);
+        try (Connection conn = engine.getConnection(); ) {
+            conn.createStatement().executeQuery(query);
+        } catch (SQLException ex) {
+            throw new RuntimeException(
+                    "Exception caught when reindexing " + name + " index in vector store table: \"" + schemaName
+                            + "\".\"" + tableName + "\"",
                     ex);
         }
     }
