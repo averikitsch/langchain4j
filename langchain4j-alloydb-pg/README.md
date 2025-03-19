@@ -43,39 +43,45 @@ Java >= 17
 
 ## AlloyDBEngine Usage
 
-Instances of `AlloyDBEngine` can be created by configuring provided `Builder`, it requires the following information from the AlloyDB project:
+Instances of `AlloyDBEngine` can be created by configuring provided `Builder`. The `AlloyDBEngine` configures a connection pool to your AlloyDB database, 
+enabling successful connections from your application and following industry best practices.
+Securely connect to AlloyDB by using the built-in [AlloyDB Java Connector](https://github.com/GoogleCloudPlatform/alloydb-java-connector/tree/main) using Builder
+options:
  - project id
  - region
  - cluster
  - instance
  - database
- - database-user (optional)
- - database-password (optional)
- - IAM accont email (optional)
+ - user (optional)
+ - password (optional)
+ - IAM account email (optional)
  - ip-type (optional, default: "public")
- - host (optional)
- - port (optional, default: 5432).
 
-example configuration: 
+For authentication there will be 3 possible configurations
+- provided user and password will be used to login to the database
+- provided IAM account email will be used to login to the database
+- if neither the IAM account email or user and password are provided, the Engine will retrieve the account from the authenticated Google credential.
+
+Connect to an AlloyDB Omni instance by specifying the host:
+ - host
+ - port (optional, default: 5432).
+ - database
+ - user 
+ - password
+
 ```java
-...
 import dev.langchain4j.engine.AlloyDBEngine;
-...
+
     AlloyDBEngine engine = new AlloyDBEngine.Builder()
                 .projectId("my-projectId")
                 .region("my-region")
                 .cluster("my-cluster")
                 .instance("my-instance")
                 .database("my-database")
-                .user("my-user")
-                .password("my-password")
                 .build();
 
 ```
-For authentication there will be 3 possible configurations
-- provided user and password will be used to loginto the database
-- provided IAM account email will be used to login to the database
-- if neither the IAM account email or user and password are provided, the Engine will retrieve the account from the authenticated Google credential.
+
 
 ### initVectorStore
 `AlloyDBEngine` provides `initVectorStore` method to initialize the vector store table, it requires a `EmbeddingStoreConfig` object that can be configured with its provided `Builder` it requires the following:
@@ -108,9 +114,6 @@ import dev.langchain4j.engine.MetadataColumn;
                 .build();
         engine.initVectorStoreTable(customParams);
 ```
-
-`MetadataColumn` constructor receives 3 parameters, the name of the column, the column's type and a boolean nullable for using the nullable constraint, supported types are: "text", "char()", "varchar()", "uuid", "integer", "bigint", "real" and "double"
-
 
 ## AlloyDBEmbeddingStore Usage
 
@@ -170,15 +173,7 @@ import dev.langchain4j.data.document.Document;
 import dev.langchain4j.engine.AlloyDBEngine;
 import dev.langchain4j.engine.AlloyDBLoader;
 
-    AlloyDBEngine engine = new AlloyDBEngine.Builder()
-                .projectId("my-projectId")
-                .region("my-region")
-                .cluster("my-cluster")
-                .instance("my-instance")
-                .database("my-database")
-                .user("my-user")
-                .password("my-password")
-                .build();
+
    AlloyDBLoader loader = AlloyDBLoader.builder()
                 .engine(engine)
                 .tableName("my-table-name")
@@ -186,5 +181,3 @@ import dev.langchain4j.engine.AlloyDBLoader;
    List<Document> docs = loader.load();
 
    ```
-
-
