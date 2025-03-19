@@ -387,7 +387,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * Create index in the vector store table
      * @param index, index to be applied
-     * @param name, name of the index in the table
+     * @param name, name of the index
      * @param concurrently, CONCURRENTLY option
      */
     public void applyVectorIndex(BaseIndex index, String name, Boolean concurrently) {
