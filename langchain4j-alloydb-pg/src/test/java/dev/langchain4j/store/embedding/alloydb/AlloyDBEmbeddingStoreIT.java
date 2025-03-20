@@ -428,4 +428,38 @@ public class AlloyDBEmbeddingStoreIT {
         assertThat(result.size()).isEqualTo(1);
         assertThat(result.get(0).embedded().text()).isEqualTo("cat");
     }
+
+    @Test
+    void search_for_vector_with_null_metadata() {
+        List<Embedding> embeddings = new ArrayList<>();
+
+        Stack<String> hayStack = new Stack<>();
+        for (int i = 0; i < 10; i++) {
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            embeddings.add(new Embedding(vector.toArray()));
+
+            hayStack.push("s" + i);
+        }
+
+        store.addAll(embeddings);
+
+        EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embeddings.get(1))
+                .maxResults(10)
+                .minScore(0.0)
+                .build();
+
+        List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
+
+        // should return all 10
+        assertThat(result.size()).isEqualTo(10);
+
+        for (EmbeddingMatch<TextSegment> match : result) {
+            Map<String, Object> matchMetadata = match.embedded().metadata().toMap();
+            // metadata json should be unpacked into the original columns
+            for (String column : matchMetadata.keySet()) {
+                assertThat(matchMetadata.get(column)).isEqualTo("NULL");
+            }
+        }
+    }
 }

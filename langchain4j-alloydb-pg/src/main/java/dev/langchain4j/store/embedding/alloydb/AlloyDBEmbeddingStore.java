@@ -247,11 +247,11 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     Embedding embedding = Embedding.from(pgVector.toArray());
 
-                    String embeddedText = resultSet.getString(contentColumn);
+                    String embeddedText = getOrDefault(resultSet.getString(contentColumn), "NULL");
                     Map<String, Object> metadataMap = new HashMap<>();
 
                     for (String metaColumn : metadataColumns) {
-                        metadataMap.put(metaColumn, resultSet.getObject(metaColumn));
+                        metadataMap.put(metaColumn, getOrDefault(resultSet.getObject(metaColumn), "NULL"));
                     }
 
                     if (isNotNullOrBlank(metadataJsonColumn)) {
