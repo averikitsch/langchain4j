@@ -14,7 +14,7 @@
     <name>LangChain4j :: Integration :: Cloud SQL PostgreSQL</name>
     <description>Cloud SQL PG for Langchain4j</description>
     <properties>
-        <pgvector-java.version>0.1.4</pgvector-java.version>
+        <pgvector-java.version>0.1.6</pgvector-java.version>
     </properties>
 
     <dependencies>
@@ -33,6 +33,12 @@
             <groupId>com.pgvector</groupId>
             <artifactId>pgvector</artifactId>
             <version>${pgvector-java.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.cloud.sql</groupId>
@@ -43,6 +49,7 @@
                     <groupId>com.google.cloud.sql</groupId>
                     <artifactId>jdbc-socket-factory-core</artifactId>
                 </exclusion>
+
             </exclusions>
         </dependency>
 
@@ -209,7 +216,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.0</version>
+            <version>42.7.4</version>
         </dependency>
 
         <dependency>
@@ -233,6 +240,24 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-context</artifactId>
             <version>1.60.1</version>
+        </dependency>
+        <!-- Tests use this model to generate embeddings -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
