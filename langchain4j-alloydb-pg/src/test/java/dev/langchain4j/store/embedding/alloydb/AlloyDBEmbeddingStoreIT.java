@@ -433,32 +433,37 @@ public class AlloyDBEmbeddingStoreIT {
     void search_for_vector_with_null_metadata() {
         List<Embedding> embeddings = new ArrayList<>();
 
-        Stack<String> hayStack = new Stack<>();
         for (int i = 0; i < 10; i++) {
             PGvector vector = randomPGvector(VECTOR_SIZE);
             embeddings.add(new Embedding(vector.toArray()));
-
-            hayStack.push("s" + i);
         }
 
         store.addAll(embeddings);
 
+        Map<String, Object> metaMap = new HashMap<>();
+        metaMap.put("metadata", "I'm not null!");
+        TextSegment textSegment = new TextSegment("this is a test text", new Metadata(metaMap));
+        String idEmbeddingWithMetadata =
+                store.add(new Embedding(randomPGvector(VECTOR_SIZE).toArray()), textSegment);
+
         EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
                 .queryEmbedding(embeddings.get(1))
-                .maxResults(10)
+                .maxResults(11)
                 .minScore(0.0)
                 .build();
 
         List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
 
-        // should return all 10
-        assertThat(result.size()).isEqualTo(10);
+        // should return all 11
+        assertThat(result.size()).isEqualTo(11);
 
         for (EmbeddingMatch<TextSegment> match : result) {
-            Map<String, Object> matchMetadata = match.embedded().metadata().toMap();
-            // metadata json should be unpacked into the original columns
-            for (String column : matchMetadata.keySet()) {
-                assertThat(matchMetadata.get(column)).isEqualTo("NULL");
+            if (match.embeddingId().equals(idEmbeddingWithMetadata)) {
+                assertThat(match.embedded().text()).isEqualTo("this is a test text");
+                assertThat(match.embedded().metadata().toMap().size()).isEqualTo(1);
+                assertThat(match.embedded().metadata().getString("metadata")).isEqualTo("I'm not null!");
+            } else {
+                assertThat(match.embedded()).isNull();
             }
         }
     }

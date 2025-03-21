@@ -247,11 +247,14 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     Embedding embedding = Embedding.from(pgVector.toArray());
 
-                    String embeddedText = getOrDefault(resultSet.getString(contentColumn), "NULL");
+                    String embeddedText = resultSet.getString(contentColumn);
                     Map<String, Object> metadataMap = new HashMap<>();
 
                     for (String metaColumn : metadataColumns) {
-                        metadataMap.put(metaColumn, getOrDefault(resultSet.getObject(metaColumn), "NULL"));
+                        if (resultSet.getObject(metaColumn) == null) {
+                            continue;
+                        }
+                        metadataMap.put(metaColumn, resultSet.getObject(metaColumn));
                     }
 
                     if (isNotNullOrBlank(metadataJsonColumn)) {
@@ -262,7 +265,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     Metadata metadata = Metadata.from(metadataMap);
 
-                    TextSegment embedded = new TextSegment(embeddedText, metadata);
+                    TextSegment embedded =
+                            (isNotNullOrBlank(embeddedText)) ? new TextSegment(embeddedText, metadata) : null;
 
                     embeddingMatches.add(new EmbeddingMatch<>(score, embeddingId, embedding, embedded));
                 }
