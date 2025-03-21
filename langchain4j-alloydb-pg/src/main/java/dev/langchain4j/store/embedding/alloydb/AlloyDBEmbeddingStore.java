@@ -251,6 +251,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     Map<String, Object> metadataMap = new HashMap<>();
 
                     for (String metaColumn : metadataColumns) {
+                        if (resultSet.getObject(metaColumn) == null) {
+                            continue;
+                        }
                         metadataMap.put(metaColumn, resultSet.getObject(metaColumn));
                     }
 
@@ -262,7 +265,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     Metadata metadata = Metadata.from(metadataMap);
 
-                    TextSegment embedded = new TextSegment(embeddedText, metadata);
+                    TextSegment embedded =
+                            (isNotNullOrBlank(embeddedText)) ? new TextSegment(embeddedText, metadata) : null;
 
                     embeddingMatches.add(new EmbeddingMatch<>(score, embeddingId, embedding, embedded));
                 }

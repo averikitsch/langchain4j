@@ -45,10 +45,6 @@ public class AlloyDBEmbeddingStoreIT {
     private static final Integer VECTOR_SIZE = 384;
     private static final EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     private static EmbeddingStoreConfig embeddingStoreConfig;
-    private static String projectId;
-    private static String region;
-    private static String cluster;
-    private static String instance;
     private static String database;
     private static String user;
     private static String password;
@@ -59,10 +55,6 @@ public class AlloyDBEmbeddingStoreIT {
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
-        projectId = System.getenv("ALLOYDB_PROJECT_ID");
-        region = System.getenv("ALLOYDB_REGION");
-        cluster = System.getenv("ALLOYDB_CLUSTER");
-        instance = System.getenv("ALLOYDB_INSTANCE");
         database = System.getenv("ALLOYDB_DB_NAME");
         user = System.getenv("ALLOYDB_USER");
         password = System.getenv("ALLOYDB_PASSWORD");
@@ -435,5 +427,44 @@ public class AlloyDBEmbeddingStoreIT {
         // should get 1 hit
         assertThat(result.size()).isEqualTo(1);
         assertThat(result.get(0).embedded().text()).isEqualTo("cat");
+    }
+
+    @Test
+    void search_for_vector_with_null_metadata() {
+        List<Embedding> embeddings = new ArrayList<>();
+
+        for (int i = 0; i < 10; i++) {
+            PGvector vector = randomPGvector(VECTOR_SIZE);
+            embeddings.add(new Embedding(vector.toArray()));
+        }
+
+        store.addAll(embeddings);
+
+        Map<String, Object> metaMap = new HashMap<>();
+        metaMap.put("metadata", "I'm not null!");
+        TextSegment textSegment = new TextSegment("this is a test text", new Metadata(metaMap));
+        String idEmbeddingWithMetadata =
+                store.add(new Embedding(randomPGvector(VECTOR_SIZE).toArray()), textSegment);
+
+        EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embeddings.get(1))
+                .maxResults(11)
+                .minScore(0.0)
+                .build();
+
+        List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
+
+        // should return all 11
+        assertThat(result.size()).isEqualTo(11);
+
+        for (EmbeddingMatch<TextSegment> match : result) {
+            if (match.embeddingId().equals(idEmbeddingWithMetadata)) {
+                assertThat(match.embedded().text()).isEqualTo("this is a test text");
+                assertThat(match.embedded().metadata().toMap().size()).isEqualTo(1);
+                assertThat(match.embedded().metadata().getString("metadata")).isEqualTo("I'm not null!");
+            } else {
+                assertThat(match.embedded()).isNull();
+            }
+        }
     }
 }
