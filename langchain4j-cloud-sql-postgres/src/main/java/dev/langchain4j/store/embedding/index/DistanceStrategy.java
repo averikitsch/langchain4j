@@ -10,26 +10,47 @@ public enum DistanceStrategy {
   private final String indexFunction;
   private final String scannIndexFunction;
 
+  /** Constructor for DistanceStrategy */
   private DistanceStrategy(
-      String indexFunction, String operator, String scannIndexFunction, String searchFunction) {
+      String operator, String searchFunction, String indexFunction, String scannIndexFunction) {
     this.indexFunction = indexFunction;
     this.operator = operator;
     this.scannIndexFunction = scannIndexFunction;
     this.searchFunction = searchFunction;
   }
 
+  /**
+   * get operator
+   *
+   * @return DistanceStrategy's operator
+   */
   public String getOperator() {
     return operator;
   }
 
+  /**
+   * search function
+   *
+   * @return DistanceStrategy's search function
+   */
   public String getSearchFunction() {
     return searchFunction;
   }
 
+  /**
+   * get index function
+   *
+   * @return DistanceStrategy's index function
+   */
   public String getIndexFunction() {
     return indexFunction;
   }
 
+  /**
+   * get ScaNN index function
+   *
+   * @return DistanceStrategy's ScaNN index function
+   */
   public String getScannIndexFunction() {
     return scannIndexFunction;
   }

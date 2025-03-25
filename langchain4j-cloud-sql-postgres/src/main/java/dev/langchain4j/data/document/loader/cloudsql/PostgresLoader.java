@@ -3,10 +3,10 @@ package dev.langchain4j.data.document.loader.cloudsql;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import dev.langchain4j.PostgresEngine;
 import dev.langchain4j.data.document.DefaultDocument;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.engine.PostgresEngine;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,14 +19,11 @@ import java.util.function.BiFunction;
 
 /**
  * PostgresLoader
- * <p>
- * This loader allows you to retrieve data from Postgres using either a custom
- * SQL query or a table name. You can specify which columns should be used for
- * the document's content and which for its metadata. Additionally, you can
- * format the content using predefined formats (CSV, text, JSON, YAML) or a
- * custom formatter. Metadata can be loaded from specified columns or from a
- * JSON column.
- * </p>
+ *
+ * <p>This loader allows you to retrieve data from Postgres using either a custom SQL query or a
+ * table name. You can specify which columns should be used for the document's content and which for
+ * its metadata. Additionally, you can format the content using predefined formats (CSV, text, JSON,
+ * YAML) or a custom formatter. Metadata can be loaded from specified columns or from a JSON column.
  */
 public class PostgresLoader {
 
@@ -49,9 +46,7 @@ public class PostgresLoader {
         this.metadataJsonColumn = builder.metadataJsonColumn;
     }
 
-    /**
-     * Builder for {@link PostgresLoader}.
-     */
+    /** Builder for {@link PostgresLoader}. */
     public static class Builder {
 
         private final PostgresEngine engine;
@@ -85,8 +80,8 @@ public class PostgresLoader {
         }
 
         /**
-         * Sets the SQL query to execute. If not provided, a default query is
-         * generated from the table name.
+         * Sets the SQL query to execute. If not provided, a default query is generated from the table
+         * name.
          *
          * @param query The SQL query.
          * @return This Builder.
@@ -97,8 +92,7 @@ public class PostgresLoader {
         }
 
         /**
-         * Sets the table name to load data from. If not provided, a custom
-         * query must be specified.
+         * Sets the table name to load data from. If not provided, a custom query must be specified.
          *
          * @param tableName The table name.
          * @return This Builder.
@@ -120,9 +114,8 @@ public class PostgresLoader {
         }
 
         /**
-         * Sets the format for the document content. Predefined formats are
-         * "csv", "text", "JSON", and "YAML". Only one of format or formatter
-         * should be specified.
+         * Sets the format for the document content. Predefined formats are "csv", "text", "JSON", and
+         * "YAML". Only one of format or formatter should be specified.
          *
          * @param format The format string.
          * @return This Builder.
@@ -166,13 +159,11 @@ public class PostgresLoader {
         }
 
         /**
-         * Builds an {@link PostgresLoader} with the configuration applied to
-         * this builder.
+         * Builds an {@link PostgresLoader} with the configuration applied to this builder.
          *
          * @return The built {@link PostgresLoader} instance.
-         * @throws IllegalArgumentException if neither query nor tableName is
-         * specified, or if both format and formatter are specified, or if
-         * specified column not found.
+         * @throws IllegalArgumentException if neither query nor tableName is specified, or if both
+         *     format and formatter are specified, or if specified column not found.
          * @throws SQLException if a database error occurs.
          */
         public PostgresLoader build() throws SQLException {
@@ -329,7 +320,8 @@ public class PostgresLoader {
                         objectMapper.readValue(row.get(metadataJsonColumn).toString(), Map.class));
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(
-                        "Failed to parse JSON: " + e.getMessage()
+                        "Failed to parse JSON: "
+                                + e.getMessage()
                                 + ". Ensure metadata JSON structure matches the expected format.",
                         e);
             }
@@ -345,23 +337,20 @@ public class PostgresLoader {
     }
 
     /**
-     * Executes the configured SQL query against the Postgres database and
-     * transforms the result set into a list of {@link Document} objects.
-     * <p>
-     * Each row in the result set is processed according to the configured
-     * content columns, metadata columns, and formatter. The content is
-     * extracted and formatted, and metadata is assembled from the specified
-     * columns or the JSON metadata column.
-     * </p>
+     * Executes the configured SQL query against the Postgres database and transforms the result set
+     * into a list of {@link Document} objects.
      *
-     * @return A list of {@link Document} objects, where each document
-     * represents a row from the database result set.
-     * @throws SQLException If a database error occurs during the execution of
-     * the query or while processing the result set. This could include issues
-     * such as connection problems, SQL syntax errors, or data retrieval
-     * failures.
-     * @throws RuntimeException If there's an error parsing the JSON metadata
-     * column, indicating an issue with the JSON structure.
+     * <p>Each row in the result set is processed according to the configured content columns,
+     * metadata columns, and formatter. The content is extracted and formatted, and metadata is
+     * assembled from the specified columns or the JSON metadata column.
+     *
+     * @return A list of {@link Document} objects, where each document represents a row from the
+     *     database result set.
+     * @throws SQLException If a database error occurs during the execution of the query or while
+     *     processing the result set. This could include issues such as connection problems, SQL
+     *     syntax errors, or data retrieval failures.
+     * @throws RuntimeException If there's an error parsing the JSON metadata column, indicating an
+     *     issue with the JSON structure.
      */
     public List<Document> load() throws SQLException {
         List<Document> documents = new ArrayList<>();
