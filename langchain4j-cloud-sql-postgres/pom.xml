@@ -37,7 +37,7 @@
         <dependency>
             <groupId>com.google.cloud.sql</groupId>
             <artifactId>postgres-socket-factory</artifactId>
-            <version>1.21.2</version>
+            <version>1.23.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.cloud.sql</groupId>
@@ -216,7 +216,7 @@
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-            <version>5.1.0</version>
+            <version>6.2.1</version>
         </dependency>
         <dependency>
             <groupId>com.google.truth</groupId>
