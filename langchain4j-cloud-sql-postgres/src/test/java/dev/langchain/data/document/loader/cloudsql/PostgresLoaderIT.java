@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.loader.cloudsql.PostgresLoader;
-import dev.langchain4j.engine.*;
+import dev.langchain4j.engine.PostgresEngine;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
