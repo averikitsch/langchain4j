@@ -435,8 +435,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     function,
                     params,
                     filter);
-
-            conn.createStatement().executeQuery(stmt);
+            conn.createStatement().executeUpdate(stmt);
 
         } catch (SQLException ex) {
             throw new RuntimeException(
@@ -454,7 +453,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
         String query = String.format("DROP INDEX IF EXISTS %s;", name);
         try (Connection conn = engine.getConnection(); ) {
-            conn.createStatement().executeQuery(query);
+            conn.createStatement().executeUpdate(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when removing " + name + " index in vector store table: \"" + schemaName + "\".\""
@@ -471,7 +470,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
         String query = String.format("REINDEX INDEX %s;", name);
         try (Connection conn = engine.getConnection(); ) {
-            conn.createStatement().executeQuery(query);
+            conn.createStatement().executeUpdate(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when reindexing " + name + " index in vector store table: \"" + schemaName
