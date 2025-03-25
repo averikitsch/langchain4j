@@ -1,11 +1,11 @@
 package dev.langchain4j.store.embedding.cloudsql;
 
-import static dev.langchain4j.utils.AlloyDBTestUtils.randomPGvector;
+import static dev.langchain4j.utils.CloudsqlTestUtils.randomPGvector;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pgvector.PGvector;
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.engine.EmbeddingStoreConfig;
+import dev.langchain4j.engine.CloudsqlEmbeddingStoreConfig;
 import dev.langchain4j.engine.MetadataColumn;
 import dev.langchain4j.engine.PostgresEngine;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
@@ -17,6 +17,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -29,13 +31,15 @@ public class PostgresEmbeddingStoreIT {
     private static String database;
     private static String user;
     private static String password;
+    private static String iamEmail;
 
     private static PostgresEngine engine;
     private static PostgresEmbeddingStore store;
     private static Connection defaultConnection;
-    private static EmbeddingStoreConfig embeddingStoreConfig;
+    private static CloudsqlEmbeddingStoreConfig embeddingStoreConfig;
     private static final String TABLE_NAME = "JAVA_EMBEDDING_TEST_TABLE";
-    private static final Integer VECTOR_SIZE = 384;
+    private static final Integer VECTOR_SIZE = 100;
+    private static final String ipType = "public";
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
@@ -47,14 +51,17 @@ public class PostgresEmbeddingStoreIT {
         database = System.getenv("POSTGRES_DB");
         user = System.getenv("POSTGRES_USER");
         password = System.getenv("POSTGRES_PASS");
-        // IAM_EMAIL = System.getenv("POSTGRES_IAM_EMAIL");
+        iamEmail = System.getenv("POSTGRES_IAM_EMAIL");
 
         engine = new PostgresEngine.Builder()
-                //     .host("127.0.0.1")
-                //      .port(5432)
+                .projectId(projectId)
+                .region(region)
+                .instance(instance)
                 .database(database)
                 .user(user)
                 .password(password)
+                .ipType(ipType)
+                .iamAccountEmail(iamEmail)
                 .build();
 
         List<MetadataColumn> metadataColumns = new ArrayList<>();
@@ -65,7 +72,7 @@ public class PostgresEmbeddingStoreIT {
         metadataColumns.add(new MetadataColumn("float", "real", true));
         metadataColumns.add(new MetadataColumn("double", "double precision", true));
 
-        embeddingStoreConfig = new EmbeddingStoreConfig.Builder(TABLE_NAME, VECTOR_SIZE)
+        embeddingStoreConfig = new CloudsqlEmbeddingStoreConfig.Builder(TABLE_NAME, VECTOR_SIZE)
                 .metadataColumns(metadataColumns)
                 .storeMetadata(true)
                 .build();
@@ -83,6 +90,17 @@ public class PostgresEmbeddingStoreIT {
                 .distanceStrategy(DistanceStrategy.COSINE_DISTANCE)
                 .metadataColumns(metaColumnNames)
                 .build();
+    }
+
+    @AfterEach
+    public void afterEach() throws SQLException {
+        defaultConnection.createStatement().executeUpdate(String.format("TRUNCATE TABLE \"%s\"", TABLE_NAME));
+    }
+
+    @AfterAll
+    public static void afterAll() throws SQLException {
+        defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
+        defaultConnection.close();
     }
 
     @Test
