@@ -29,7 +29,7 @@ public class IVFQueryOptions implements QueryOptions {
     /**
      * Builder which configures and creates instances of {@link IVFQueryOptions}.
      */
-    public class Builder {
+    public static class Builder {
 
         private Integer probes = 1;
 

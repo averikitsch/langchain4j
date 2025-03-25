@@ -28,7 +28,7 @@ public class HNSWQueryOptions implements QueryOptions {
     /**
      * Builder which configures and creates instances of {@link HNSWQueryOptions}.
      */
-    public class Builder {
+    public static class Builder {
 
         private Integer efSearch = 40;
 

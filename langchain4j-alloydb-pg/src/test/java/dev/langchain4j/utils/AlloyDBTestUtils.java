@@ -31,7 +31,7 @@ public class AlloyDBTestUtils {
         assertThat(actualNames).isEqualTo(expectedColumns);
     }
 
-    public static void verifyIndex(Connection connection, String tableName, String type, String expected)
+    public static void verifyIndex(Connection connection, String schemaName, String tableName, String type, String expected)
             throws SQLException {
         ResultSet indexes = connection
                 .createStatement()

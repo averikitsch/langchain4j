@@ -4,6 +4,7 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.utils.AlloyDBTestUtils.randomPGvector;
+import static dev.langchain4j.utils.AlloyDBTestUtils.verifyIndex;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,6 +22,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
+import dev.langchain4j.store.embedding.index.HNSWIndex;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -466,5 +468,12 @@ public class AlloyDBEmbeddingStoreIT {
                 assertThat(match.embedded()).isNull();
             }
         }
+    }
+
+    @Test
+    void apply_vector_index() {
+        store.applyVectorIndex(new HNSWIndex.Builder().build(), null, false);
+        verifyIndex();
+
     }
 }
