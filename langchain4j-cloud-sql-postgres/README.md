@@ -1,4 +1,4 @@
-# CoudSQL Embedding Store for LangChain4j
+# CoudSQL for PostgreSQL Embedding Store for LangChain4j
 
 
 This module implements `EmbeddingStore` backed by an CoudSQL for PostgreSQL database.
