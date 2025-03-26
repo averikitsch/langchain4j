@@ -59,7 +59,7 @@ public class IVFIndex implements BaseIndex {
     /**
      * Builder which configures and creates instances of {@link IVFIndex}.
      */
-    public class Builder {
+    public static class Builder {
 
         private String name;
         private Integer listCount = 100;

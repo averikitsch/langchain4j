@@ -32,7 +32,7 @@ public class ScaNNIndexQueryOptions implements QueryOptions {
     /**
      * Builder which configures and creates instances of {@link ScaNNIndexQueryOptions}.
      */
-    public class Builder {
+    public static class Builder {
 
         private Integer numLeavesToSearch = 1;
         private Integer preOrderingNumNeighbors = -1;

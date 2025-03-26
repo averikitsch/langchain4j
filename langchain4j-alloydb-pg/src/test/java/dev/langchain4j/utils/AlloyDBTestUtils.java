@@ -31,15 +31,18 @@ public class AlloyDBTestUtils {
         assertThat(actualNames).isEqualTo(expectedColumns);
     }
 
-    public static void verifyIndex(Connection connection, String tableName, String type, String expected)
+    public static void verifyIndex(Connection connection, String tableName, String indexName, String type)
             throws SQLException {
         ResultSet indexes = connection
                 .createStatement()
                 .executeQuery(String.format(
-                        "SELECT indexdef FROM pg_indexes WHERE tablename = '%s' AND indexname = '%s_%s_index'",
-                        tableName.toLowerCase(), tableName.toLowerCase(), type));
+                        "SELECT indexdef FROM pg_indexes WHERE tablename = '%s' AND indexname = '%s'",
+                        tableName, indexName));
+        assertThat(indexes.isBeforeFirst())
+                .withFailMessage("no index named " + indexName + " found")
+                .isTrue();
         while (indexes.next()) {
-            assertThat(indexes.getString("indexdef")).contains(expected);
+            assertThat(indexes.getString("indexdef")).contains(type);
         }
     }
 

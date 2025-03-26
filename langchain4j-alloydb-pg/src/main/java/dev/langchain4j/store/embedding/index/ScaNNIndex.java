@@ -59,7 +59,7 @@ public class ScaNNIndex implements BaseIndex {
     /**
      * Builder which configures and creates instances of {@link ScaNNIndex}.
      */
-    public class Builder {
+    public static class Builder {
 
         private String name;
         private Integer numLeaves = 5;
