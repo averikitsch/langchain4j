@@ -16,14 +16,14 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.stream.Collectors;
-import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PostgresEngine {
 
-    private DataSource dataSource;
     private static final Logger log = LoggerFactory.getLogger(PostgresEngine.class.getName());
+
+    private final HikariDataSource dataSource;
 
     /**
      * Constructor for PostgresEngine
@@ -114,6 +114,11 @@ public class PostgresEngine {
         Connection connection = dataSource.getConnection();
         PGvector.addVectorType(connection);
         return connection;
+    }
+
+    /** Closes a Connection */
+    public void close() {
+        dataSource.close();
     }
 
     public static Builder builder() {

@@ -42,7 +42,6 @@ import org.junit.jupiter.api.Test;
 public class PostgresEmbeddingStoreIT {
     private static String projectId;
     private static String region;
-    private static String cluster;
     private static String instance;
     private static String database;
     private static String user;
@@ -63,7 +62,6 @@ public class PostgresEmbeddingStoreIT {
     public static void beforeAll() throws SQLException {
         projectId = System.getenv("POSTGRES_PROJECT_ID");
         region = System.getenv("REGION");
-        cluster = System.getenv("POSTGRES_CLUSTER");
         instance = System.getenv("POSTGRES_INSTANCE");
         database = System.getenv("POSTGRES_DB");
         user = System.getenv("POSTGRES_USER");
