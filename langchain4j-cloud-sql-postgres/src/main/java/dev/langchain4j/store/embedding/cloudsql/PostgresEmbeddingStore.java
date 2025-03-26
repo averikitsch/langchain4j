@@ -55,8 +55,10 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final Integer k;
     private final Integer fetchK;
     private final Double lambdaMult;
+
     private final CloudsqlFilterMapper FILTER_MAPPER = new CloudsqlFilterMapper();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
+
     private QueryOptions queryOptions;
     private String metadataJsonColumn;
     private final DistanceStrategy distanceStrategy;
@@ -126,22 +128,28 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
             if (!allColumns.containsKey(metadataJsonColumn)) {
                 metadataJsonColumn = null;
             }
+
             for (String metadataColumn : metadataColumns) {
                 if (!allColumns.containsKey(metadataColumn)) {
                     throw new IllegalStateException("Metadata column, " + metadataColumn + ", does not exist.");
                 }
             }
+
             if (ignoredColumns != null && !ignoredColumns.isEmpty()) {
+
                 Map<String, String> allColumnsCopy =
                         allColumns.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
                 ignoredColumns.add(idColumn);
                 ignoredColumns.add(contentColumn);
                 ignoredColumns.add(embeddingColumn);
+
                 for (String ignore : ignoredColumns) {
                     allColumnsCopy.remove(ignore);
                 }
+
                 metadataColumns.addAll(allColumnsCopy.keySet());
             }
+
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when verifying vector store table: \"" + schemaName + "\".\"" + tableName + "\"",
@@ -223,16 +231,20 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         try (Connection connection = engine.getConnection()) {
             String metadataColumnNames =
                     metadataColumns.stream().map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
+
             // idColumn, contentColumn and embeddedColumn
             int totalColumns = 3;
+
             if (isNotNullOrEmpty(metadataColumnNames)) {
                 totalColumns += metadataColumnNames.split(",").length;
                 metadataColumnNames = ", " + metadataColumnNames;
             }
+
             if (isNotNullOrEmpty(metadataJsonColumn)) {
                 metadataColumnNames += ", \"" + metadataJsonColumn + "\"";
                 totalColumns++;
             }
+
             String placeholders = "?";
             for (int p = 1; p < totalColumns; p++) {
                 placeholders += ", ?";
@@ -283,6 +295,7 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
             } catch (JsonProcessingException ex) {
                 throw new RuntimeException("Exception caught when processing JSON metadata", ex);
             }
+
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when inserting into vector store table: \""
@@ -319,7 +332,7 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
-        List<String> columns = new ArrayList<String>(metadataColumns);
+        List<String> columns = new ArrayList<>(metadataColumns);
         columns.add(idColumn);
         columns.add(contentColumn);
         columns.add(embeddingColumn);
@@ -362,7 +375,12 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
                 ResultSet resultSet = statement.executeQuery(query);
                 while (resultSet.next()) {
-                    double distance = resultSet.getDouble("distance");
+                    double score = calculateRelevanceScore(resultSet.getDouble("distance"));
+
+                    if (score < request.minScore()) {
+                        continue;
+                    }
+
                     String embeddingId = resultSet.getString(idColumn);
 
                     PGvector pgVector = (PGvector) resultSet.getObject(embeddingColumn);
@@ -373,6 +391,9 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
                     Map<String, Object> metadataMap = new HashMap<>();
 
                     for (String metaColumn : metadataColumns) {
+                        if (resultSet.getObject(metaColumn) == null) {
+                            continue;
+                        }
                         metadataMap.put(metaColumn, resultSet.getObject(metaColumn));
                     }
 
@@ -384,9 +405,10 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                     Metadata metadata = Metadata.from(metadataMap);
 
-                    TextSegment embedded = new TextSegment(embeddedText, metadata);
+                    TextSegment embedded =
+                            (isNotNullOrBlank(embeddedText)) ? new TextSegment(embeddedText, metadata) : null;
 
-                    embeddingMatches.add(new EmbeddingMatch<>(distance, embeddingId, embedding, embedded));
+                    embeddingMatches.add(new EmbeddingMatch<>(score, embeddingId, embedding, embedded));
                 }
             } catch (JsonProcessingException ex) {
                 throw new RuntimeException("Exception caught when processing JSON metadata", ex);
@@ -396,6 +418,28 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
                     "Exception caught when searching in store table: \"" + schemaName + "\".\"" + tableName + "\"", ex);
         }
         return new EmbeddingSearchResult<>(embeddingMatches);
+    }
+
+    private double calculateRelevanceScore(double distance) {
+        switch (distanceStrategy.name()) {
+            case "EUCLIDEAN" -> {
+                return (1d - (distance / Math.sqrt(2)));
+            }
+            case "COSINE_DISTANCE" -> {
+                return (1d - distance);
+            }
+            case "INNER_PRODUCT" -> {
+                if (distance > 0) {
+                    return (1d - distance);
+                }
+                return (-1d * distance);
+            }
+            default -> {
+                throw new UnsupportedOperationException(String.format(
+                        "Unable to calculate relevance score for search function: %s ",
+                        distanceStrategy.getSearchFunction()));
+            }
+        }
     }
 
     /** Builder which configures and creates instances of {@link PostgresEmbeddingStore}. */

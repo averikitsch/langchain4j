@@ -8,18 +8,20 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.pgvector.PGvector;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Statement; 
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PostgresEngine {
+
     private DataSource dataSource;
     private static final Logger log = LoggerFactory.getLogger(PostgresEngine.class.getName());
 
@@ -87,6 +89,7 @@ public class PostgresEngine {
         try {
             GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
             String accessToken = credentials.refreshAccessToken().getTokenValue();
+
             String oauth2APIURL = "https://oauth2.googleapis.com/tokeninfo?access_token=" + accessToken;
             byte[] responseBytes = readBytes(oauth2APIURL);
             JsonObject responseJson =
@@ -101,8 +104,16 @@ public class PostgresEngine {
         }
     }
 
+    /**
+     * Gets a Connection from the datasource
+     *
+     * @return A connection with the database specified in {@link PostgresEngine}
+     * @throws SQLException if database error occurs
+     */
     public Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
+        Connection connection = dataSource.getConnection();
+        PGvector.addVectorType(connection);
+        return connection;
     }
 
     public static Builder builder() {
@@ -110,6 +121,7 @@ public class PostgresEngine {
     }
 
     public static class Builder {
+
         private String projectId;
         private String region;
         private String instance;
@@ -198,11 +210,13 @@ public class PostgresEngine {
         try (Connection connection = getConnection(); ) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
+
             if (embeddingStoreConfig.getOverwriteExisting()) {
                 statement.executeUpdate(String.format(
                         "DROP TABLE \"%s\".\"%s\"",
                         embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()));
             }
+
             String metadataClause = "";
             if (embeddingStoreConfig.getMetadataColumns() != null
                     && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
@@ -217,6 +231,7 @@ public class PostgresEngine {
             } else if (embeddingStoreConfig.getStoreMetadata()) {
                 throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
             }
+
             if (embeddingStoreConfig.getStoreMetadata()) {
                 metadataClause += String.format(
                         ", %s",
