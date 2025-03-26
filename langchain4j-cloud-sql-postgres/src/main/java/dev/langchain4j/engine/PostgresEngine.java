@@ -78,7 +78,7 @@ public class PostgresEngine {
             config.setPassword(ensureNotBlank(password, "password"));
         }
         config.setJdbcUrl(String.format("jdbc:postgresql:///%s", ensureNotBlank(database, "database")));
-        config.addDataSourceProperty("socketFactoryArg", "com.google.cloud.postgres.SocketFactory");
+        config.addDataSourceProperty("socketFactory", "com.google.cloud.sql.postgres.SocketFactory");
         config.addDataSourceProperty("cloudSqlInstance", ensureNotBlank(instanceName, "instanceName"));
         config.addDataSourceProperty("ipType", ensureNotBlank(ipType, "ipType"));
 
