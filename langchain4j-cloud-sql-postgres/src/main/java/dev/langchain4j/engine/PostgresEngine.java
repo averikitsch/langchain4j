@@ -19,6 +19,14 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * PostgresEngine
+ *
+ * <p>Instances of this store are created by configuring a builder: {@code PostgresEngine engine =
+ * new PostgresEngine.Builder(projectId, region, cluster, instance, database).build(); } Uses
+ * HikariCP as a DataSource. A connection pool that will avoid the latency of repeatedly creating
+ * new database connections.
+ */
 public class PostgresEngine {
 
     private static final Logger log = LoggerFactory.getLogger(PostgresEngine.class.getName());
@@ -28,15 +36,7 @@ public class PostgresEngine {
     /**
      * Constructor for PostgresEngine
      *
-     * @param projectId (Required) project id
-     * @param region (Required) cluster region
-     * @param cluster (Required) cluster
-     * @param instance (Required) instance
-     * @param database (Required) database
-     * @param user (Optional) database user
-     * @param password (Optional) database password
-     * @param ipType (Required) type of IP to be used (PUBLIC, PSC)
-     * @param iamAccountEmail (Optional) IAM account email
+     * @param builder builder
      */
     public PostgresEngine(Builder builder) {
         Boolean enableIAMAuth = false;
@@ -121,10 +121,21 @@ public class PostgresEngine {
         dataSource.close();
     }
 
+    /**
+     * builder
+     *
+     * @return builder
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Builder which configures and creates instances of {@link PostgresEngine}. Connect directly to
+     * an instance using projectId, region, cluster, instance, and database params (Optional:
+     * user/password, iamAccountEmail, ipType) or connect via an IP Address using host, user,
+     * password, and database params (Optional: port)
+     */
     public static class Builder {
 
         private String projectId;
@@ -136,10 +147,14 @@ public class PostgresEngine {
         private String ipType = "public";
         private String iamAccountEmail;
 
+        /** Creates a new {@code Builder} instance. */
         public Builder() {}
 
         /**
+         * project id
+         *
          * @param projectId (Required) project id
+         * @return this builder
          */
         public Builder projectId(String projectId) {
             this.projectId = projectId;
@@ -147,7 +162,10 @@ public class PostgresEngine {
         }
 
         /**
+         * region
+         *
          * @param region (Required) cluster region
+         * @return this builder
          */
         public Builder region(String region) {
             this.region = region;
@@ -155,7 +173,10 @@ public class PostgresEngine {
         }
 
         /**
-         * @param instance (Required) instance
+         * instance
+         *
+         * @param instance (Required)
+         * @return this builder
          */
         public Builder instance(String instance) {
             this.instance = instance;
@@ -163,7 +184,10 @@ public class PostgresEngine {
         }
 
         /**
-         * @param database (Required) database
+         * database
+         *
+         * @param database (Required)
+         * @return this builder
          */
         public Builder database(String database) {
             this.database = database;
@@ -171,7 +195,10 @@ public class PostgresEngine {
         }
 
         /**
-         * @param database (Required) database user
+         * database user
+         *
+         * @param user (Required)
+         * @return this builder
          */
         public Builder user(String user) {
             this.user = user;
@@ -179,7 +206,10 @@ public class PostgresEngine {
         }
 
         /**
-         * @param database (Required) database password
+         * database password
+         *
+         * @param password (Required)
+         * @return this builder
          */
         public Builder password(String password) {
             this.password = password;
@@ -187,7 +217,10 @@ public class PostgresEngine {
         }
 
         /**
-         * @param ipType (Required) type of IP to be used (PUBLIC, PSC)
+         * type of IP to be used (PUBLIC, PSC)
+         *
+         * @param ipType (Required)
+         * @return this builder
          */
         public Builder ipType(String ipType) {
             this.ipType = ipType;
@@ -195,19 +228,29 @@ public class PostgresEngine {
         }
 
         /**
-         * @param iamAccountEmail (Optional) IAM account email
+         * IAM account email
+         *
+         * @param iamAccountEmail (Optional)
+         * @return this builder
          */
         public Builder iamAccountEmail(String iamAccountEmail) {
             this.iamAccountEmail = iamAccountEmail;
             return this;
         }
 
+        /**
+         * Builds an {@link PostgresEngine} store with the configuration applied to this builder.
+         *
+         * @return A new {@link PostgresEngine} instance
+         */
         public PostgresEngine build() {
             return new PostgresEngine(this);
         }
     }
 
     /**
+     * intialize the Vector table
+     *
      * @param embeddingStoreConfig contains the parameters necesary to intialize the Vector table
      */
     public void initVectorStoreTable(EmbeddingStoreConfig embeddingStoreConfig) {

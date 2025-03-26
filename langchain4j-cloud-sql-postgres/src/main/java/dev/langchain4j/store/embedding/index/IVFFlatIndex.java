@@ -63,7 +63,7 @@ public class IVFFlatIndex implements BaseIndex {
 
         /**
          * @param name name
-         * @return thisbuilder
+         * @return builder
          */
         public Builder name(String name) {
             this.name = name;
@@ -72,7 +72,7 @@ public class IVFFlatIndex implements BaseIndex {
 
         /**
          * @param listCount list count
-         * @return thisbuilder
+         * @return builder
          */
         public Builder listCount(Integer listCount) {
             this.listCount = listCount;
@@ -81,7 +81,7 @@ public class IVFFlatIndex implements BaseIndex {
 
         /**
          * @param distanceStrategy distance strategy
-         * @return thisbuilder
+         * @return builder
          */
         public Builder distanceStrategy(DistanceStrategy distanceStrategy) {
             this.distanceStrategy = distanceStrategy;
@@ -90,7 +90,7 @@ public class IVFFlatIndex implements BaseIndex {
 
         /**
          * @param partialIndexes partial indexes
-         * @return thisbuilder
+         * @return builder
          */
         public Builder partialIndexes(List<String> partialIndexes) {
             this.partialIndexes = partialIndexes;
