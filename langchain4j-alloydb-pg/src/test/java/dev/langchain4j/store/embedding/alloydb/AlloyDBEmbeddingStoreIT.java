@@ -45,6 +45,10 @@ public class AlloyDBEmbeddingStoreIT {
     private static final Integer VECTOR_SIZE = 384;
     private static final EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     private static EmbeddingStoreConfig embeddingStoreConfig;
+    private static String projectId;
+    private static String region;
+    private static String cluster;
+    private static String instance;
     private static String database;
     private static String user;
     private static String password;
@@ -55,16 +59,23 @@ public class AlloyDBEmbeddingStoreIT {
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
+        projectId = System.getenv("ALLOYDB_PROJECT_ID");
+        region = System.getenv("ALLOYDB_REGION");
+        cluster = System.getenv("ALLOYDB_CLUSTER");
+        instance = System.getenv("ALLOYDB_INSTANCE");
         database = System.getenv("ALLOYDB_DB_NAME");
         user = System.getenv("ALLOYDB_USER");
         password = System.getenv("ALLOYDB_PASSWORD");
 
         engine = new AlloyDBEngine.Builder()
-                .host("127.0.0.1")
-                .port(5433)
+                .projectId(projectId)
+                .region(region)
+                .cluster(cluster)
+                .instance(instance)
                 .database(database)
                 .user(user)
                 .password(password)
+                .ipType("public")
                 .build();
 
         List<MetadataColumn> metadataColumns = new ArrayList<>();
