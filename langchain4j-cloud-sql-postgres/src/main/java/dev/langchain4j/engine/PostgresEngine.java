@@ -36,51 +36,94 @@ public class PostgresEngine {
     /**
      * Constructor for PostgresEngine
      *
-     * @param builder builder
+     * @param builder builder.
      */
     public PostgresEngine(Builder builder) {
-        Boolean enableIAMAuth = false;
 
-        if (isNullOrBlank(builder.user) && isNullOrBlank(builder.password)) {
-            enableIAMAuth = true;
-            if (isNotNullOrBlank(builder.iamAccountEmail)) {
-                log.debug("Found iamAccountEmail");
-                builder.user = builder.iamAccountEmail;
-            } else {
-                log.debug("Retrieving IAM principal email");
-                builder.user = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
-            }
-        } else if (isNotNullOrBlank(builder.user) && isNotNullOrBlank(builder.password)) {
-            enableIAMAuth = false;
-            log.debug("Found user and password, IAM Auth disabled");
-        } else {
+        if (isNotNullOrBlank(builder.host)
+                && (isNotNullOrBlank(builder.projectId) || isNotNullOrBlank(builder.instance))) {
             throw new IllegalStateException(
-                    "Either one of user or password is blank, expected both user and password to be valid"
-                            + " credentials or empty");
+                    "Connect directly to an instance using projectId, region, instance, and database"
+                            + " params or connect via an IP Address using host, user, password, and database"
+                            + " params");
         }
-        String instanceName = new StringBuilder(ensureNotBlank(builder.projectId, "projectId"))
-                .append(":")
-                .append(ensureNotBlank(builder.region, "region"))
-                .append(":")
-                .append(ensureNotBlank(builder.instance, "instance"))
-                .toString();
-        dataSource = createDataSource(
-                builder.database, builder.user, builder.password, instanceName, builder.ipType, enableIAMAuth);
+
+        if (isNotNullOrBlank(builder.instance)) {
+            Boolean enableIAMAuth;
+            String authId = builder.user;
+
+            if (isNullOrBlank(authId) && isNullOrBlank(builder.password)) {
+                enableIAMAuth = true;
+                if (isNotNullOrBlank(builder.iamAccountEmail)) {
+                    log.debug("Found iamAccountEmail");
+                    authId = builder.iamAccountEmail;
+
+                } else {
+                    log.debug("Retrieving IAM principal email");
+                    authId = getIAMPrincipalEmail().replace(".gserviceaccount.com", "");
+                }
+            } else if (isNotNullOrBlank(authId) && isNotNullOrBlank(builder.password)) {
+                enableIAMAuth = false;
+                log.debug("Found user and password, IAM Auth disabled");
+                if (isNotNullOrBlank(builder.iamAccountEmail)) {
+                    throw new IllegalStateException("Only one of User or Iam account email is allowed");
+                }
+            } else {
+                throw new IllegalStateException(
+                        "Either one of user or password is blank, expected both user and password to be valid"
+                                + " credentials or empty");
+            }
+            String instanceName = new StringBuilder(ensureNotBlank(builder.projectId, "projectId"))
+                    .append(":")
+                    .append(ensureNotBlank(builder.region, "region"))
+                    .append(":")
+                    .append(ensureNotBlank(builder.instance, "instance"))
+                    .toString();
+            dataSource = createConnectorDataSource(
+                    builder.database, authId, builder.password, instanceName, builder.ipType, enableIAMAuth);
+        } else {
+            dataSource =
+                    createUrlDataSource(builder.database, builder.user, builder.password, builder.host, builder.port);
+        }
     }
 
-    private HikariDataSource createDataSource(
+    private HikariDataSource createConnectorDataSource(
             String database, String user, String password, String instanceName, String ipType, Boolean enableIAMAuth) {
+
         HikariConfig config = new HikariConfig();
+
         config.setUsername(ensureNotBlank(user, "user"));
         if (enableIAMAuth) {
             config.addDataSourceProperty("enableIAMAuth", "true");
         } else {
             config.setPassword(ensureNotBlank(password, "password"));
         }
+
         config.setJdbcUrl(String.format("jdbc:postgresql:///%s", ensureNotBlank(database, "database")));
-        config.addDataSourceProperty("socketFactoryArg", "com.google.cloud.postgres.SocketFactory");
+        config.addDataSourceProperty("socketFactory", "com.google.cloud.sql.postgres.SocketFactory");
         config.addDataSourceProperty("cloudSqlInstance", ensureNotBlank(instanceName, "instanceName"));
         config.addDataSourceProperty("ipType", ensureNotBlank(ipType, "ipType"));
+
+        return new HikariDataSource(config);
+    }
+
+    private HikariDataSource createUrlDataSource(
+            String database, String user, String password, String host, Integer port) {
+        HikariConfig config = new HikariConfig();
+        // The following URL is equivalent to setting the config options below:
+        // jdbc:postgresql://<INSTANCE_HOST>:<DB_PORT>/<DB_NAME>?user=<DB_USER>&password=<DB_PASS>
+        // See the link below for more info on building a JDBC URL for the Cloud SQL JDBC Socket
+        // Factory
+        //
+        // https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory#creating-the-jdbc-url
+
+        // Configure which instance and what database user to connect with.
+        config.setJdbcUrl(String.format(
+                "jdbc:postgresql://%s:%d/%s",
+                ensureNotBlank(host, "host"), port, ensureNotBlank(database, "database")));
+        config.setUsername(ensureNotBlank(user, "user"));
+        config.setPassword(ensureNotBlank(password, "password"));
+        config.addDataSourceProperty("socketFactory", "com.google.cloud.sql.postgres.SocketFactory");
 
         return new HikariDataSource(config);
     }
@@ -116,145 +159,10 @@ public class PostgresEngine {
         return connection;
     }
 
-    /** Closes a Connection */
-    public void close() {
-        dataSource.close();
-    }
-
     /**
-     * builder
-     *
-     * @return builder
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
-     * Builder which configures and creates instances of {@link PostgresEngine}. Connect directly to
-     * an instance using projectId, region, cluster, instance, and database params (Optional:
-     * user/password, iamAccountEmail, ipType) or connect via an IP Address using host, user,
-     * password, and database params (Optional: port)
-     */
-    public static class Builder {
-
-        private String projectId;
-        private String region;
-        private String instance;
-        private String database;
-        private String user;
-        private String password;
-        private String ipType = "public";
-        private String iamAccountEmail;
-
-        /** Creates a new {@code Builder} instance. */
-        public Builder() {}
-
-        /**
-         * project id
-         *
-         * @param projectId (Required) project id
-         * @return this builder
-         */
-        public Builder projectId(String projectId) {
-            this.projectId = projectId;
-            return this;
-        }
-
-        /**
-         * region
-         *
-         * @param region (Required) cluster region
-         * @return this builder
-         */
-        public Builder region(String region) {
-            this.region = region;
-            return this;
-        }
-
-        /**
-         * instance
-         *
-         * @param instance (Required)
-         * @return this builder
-         */
-        public Builder instance(String instance) {
-            this.instance = instance;
-            return this;
-        }
-
-        /**
-         * database
-         *
-         * @param database (Required)
-         * @return this builder
-         */
-        public Builder database(String database) {
-            this.database = database;
-            return this;
-        }
-
-        /**
-         * database user
-         *
-         * @param user (Required)
-         * @return this builder
-         */
-        public Builder user(String user) {
-            this.user = user;
-            return this;
-        }
-
-        /**
-         * database password
-         *
-         * @param password (Required)
-         * @return this builder
-         */
-        public Builder password(String password) {
-            this.password = password;
-            return this;
-        }
-
-        /**
-         * type of IP to be used (PUBLIC, PSC)
-         *
-         * @param ipType (Required)
-         * @return this builder
-         */
-        public Builder ipType(String ipType) {
-            this.ipType = ipType;
-            return this;
-        }
-
-        /**
-         * IAM account email
-         *
-         * @param iamAccountEmail (Optional)
-         * @return this builder
-         */
-        public Builder iamAccountEmail(String iamAccountEmail) {
-            this.iamAccountEmail = iamAccountEmail;
-            return this;
-        }
-
-        /**
-         * Builds an {@link PostgresEngine} store with the configuration applied to this builder.
-         *
-         * @return A new {@link PostgresEngine} instance
-         */
-        public PostgresEngine build() {
-            return new PostgresEngine(this);
-        }
-    }
-
-    /**
-     * intialize the Vector table
-     *
      * @param embeddingStoreConfig contains the parameters necesary to intialize the Vector table
      */
     public void initVectorStoreTable(EmbeddingStoreConfig embeddingStoreConfig) {
-
         try (Connection connection = getConnection(); ) {
             Statement statement = connection.createStatement();
             statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
@@ -264,29 +172,21 @@ public class PostgresEngine {
                         "DROP TABLE \"%s\".\"%s\"",
                         embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()));
             }
-
             String metadataClause = "";
             if (embeddingStoreConfig.getMetadataColumns() != null
                     && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
-                if (!embeddingStoreConfig.getStoreMetadata()) {
-                    throw new IllegalStateException("storeMetadata option is disabled but metadata was provided");
-                }
-                metadataClause = String.format(
+                metadataClause += String.format(
                         ", %s",
                         embeddingStoreConfig.getMetadataColumns().stream()
                                 .map(MetadataColumn::generateColumnString)
-                                .collect(Collectors.joining(",")));
-            } else if (embeddingStoreConfig.getStoreMetadata()) {
-                throw new IllegalStateException("storeMetadata option is enabled but no metadata was provided");
+                                .collect(Collectors.joining(", ")));
             }
-
             if (embeddingStoreConfig.getStoreMetadata()) {
                 metadataClause += String.format(
                         ", %s",
                         new MetadataColumn(embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true)
                                 .generateColumnString());
             }
-
             String query = String.format(
                     "CREATE TABLE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NULL, \"%s\""
                             + " vector(%d) NOT NULL%s)",
@@ -297,15 +197,140 @@ public class PostgresEngine {
                     embeddingStoreConfig.getEmbeddingColumn(),
                     embeddingStoreConfig.getVectorSize(),
                     metadataClause);
-
             statement.executeUpdate(query);
-
         } catch (SQLException ex) {
             throw new RuntimeException(
                     String.format(
                             "Failed to initialize vector store table: \"%s\".\"%s\"",
                             embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()),
                     ex);
+        }
+    }
+
+    /** Closes a Connection */
+    public void close() {
+        dataSource.close();
+    }
+
+    /**
+     * Builder which configures and creates instances of {@link PostgresEngine}. Connect directly to
+     * an instance using projectId, region, instance, and database params (Optional: user/password,
+     * iamAccountEmail, ipType) or connect via an IP Address using host, user, password, and database
+     * params (Optional: port)
+     */
+    public static class Builder {
+
+        private String projectId;
+        private String region;
+        private String instance;
+        private String database;
+        private String host;
+        private Integer port;
+        private String user;
+        private String password;
+        private String ipType = "public";
+        private String iamAccountEmail;
+
+        /** Creates a new {@code Builder} instance. */
+        public Builder() {}
+
+        /**
+         * @param projectId (Optional) Postgres database projectId
+         * @return this builder
+         */
+        public Builder projectId(String projectId) {
+            this.projectId = projectId;
+            return this;
+        }
+
+        /**
+         * @param instance (Optional) Postgres database instance
+         * @return this builder
+         */
+        public Builder instance(String instance) {
+            this.instance = instance;
+            return this;
+        }
+
+        /**
+         * @param region (Optional) Postgres database region
+         * @return this builder
+         */
+        public Builder region(String region) {
+            this.region = region;
+            return this;
+        }
+
+        /**
+         * @param database (Optional) Postgres database database
+         * @return this builder
+         */
+        public Builder database(String database) {
+            this.database = database;
+            return this;
+        }
+
+        /**
+         * @param user (Optional) Postgres database user
+         * @return this builder
+         */
+        public Builder user(String user) {
+            this.user = user;
+            return this;
+        }
+
+        /**
+         * @param password (Optional) Postgres database password
+         * @return this builder
+         */
+        public Builder password(String password) {
+            this.password = password;
+            return this;
+        }
+
+        /**
+         * @param ipType (Optional) type of IP to be used (PUBLIC, PSC)
+         * @return this builder
+         */
+        public Builder ipType(String ipType) {
+            this.ipType = ipType;
+            return this;
+        }
+
+        /**
+         * @param iamAccountEmail (Optional) IAM account email
+         * @return this builder
+         */
+        public Builder iamAccountEmail(String iamAccountEmail) {
+            this.iamAccountEmail = iamAccountEmail;
+            return this;
+        }
+
+        /**
+         * @param host (Optional) Postgres database host
+         * @return this builder
+         */
+        public Builder host(String host) {
+            this.host = host;
+            return this;
+        }
+
+        /**
+         * @param port (Optional) Postgres database port
+         * @return this builder
+         */
+        public Builder port(Integer port) {
+            this.port = port;
+            return this;
+        }
+
+        /**
+         * Builds an {@link PostgresEngine} store with the configuration applied to this builder.
+         *
+         * @return A new {@link PostgresEngine} instance
+         */
+        public PostgresEngine build() {
+            return new PostgresEngine(this);
         }
     }
 }

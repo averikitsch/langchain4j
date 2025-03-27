@@ -61,8 +61,6 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String idColumn;
     private List<String> metadataColumns;
     private final Integer k;
-    private final Integer fetchK;
-    private final Double lambdaMult;
 
     private final CloudsqlFilterMapper FILTER_MAPPER = new CloudsqlFilterMapper();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
@@ -88,8 +86,6 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.metadataJsonColumn = builder.metadataJsonColumn;
         this.distanceStrategy = builder.distanceStrategy;
         this.k = builder.k;
-        this.fetchK = builder.fetchK;
-        this.lambdaMult = builder.lambdaMult;
         // check columns exist in the table
         verifyEmbeddingStoreColumns(builder.ignoreMetadataColumnNames);
     }
@@ -510,8 +506,6 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         private List<String> ignoreMetadataColumnNames = new ArrayList<>();
         private DistanceStrategy distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
         private Integer k = 4;
-        private Integer fetchK = 20;
-        private Double lambdaMult = 0.5;
         private QueryOptions queryOptions;
 
         /**
@@ -625,17 +619,6 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * Number of Documents to fetch to pass to MMR algorithm
-         *
-         * @param fetchK (Defaults: 20)
-         * @return builder
-         */
-        public Builder fetchK(Integer fetchK) {
-            this.fetchK = fetchK;
-            return this;
-        }
-
-        /**
          * QueryOptions class with vector search parameters
          *
          * @param queryOptions (Optional)
@@ -643,18 +626,6 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
          */
         public Builder queryOptions(QueryOptions queryOptions) {
             this.queryOptions = queryOptions;
-            return this;
-        }
-
-        /**
-         * Number between 0 and 1 that determines the degree of diversity among the results with 0
-         * corresponding to maximum diversity and 1 to minimum diversity
-         *
-         * @param lambdaMult (Defaults: 0.5):
-         * @return builder
-         */
-        public Builder lambdaMult(Double lambdaMult) {
-            this.lambdaMult = lambdaMult;
             return this;
         }
 

@@ -22,6 +22,10 @@
             <artifactId>langchain4j-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.pgvector</groupId>
@@ -37,16 +41,16 @@
         <dependency>
             <groupId>com.google.cloud.sql</groupId>
             <artifactId>postgres-socket-factory</artifactId>
-            <version>1.23.1</version>
-            <exclusions>
+            <version>1.24.1</version>
+            <!-- <exclusions>
                 <exclusion>
                     <groupId>com.google.cloud.sql</groupId>
                     <artifactId>jdbc-socket-factory-core</artifactId>
                 </exclusion>
-            </exclusions>
+            </exclusions> -->
         </dependency>
 
-        <dependency>
+        <!-- <dependency>
             <groupId>com.google.oauth-client</groupId>
             <artifactId>google-oauth-client</artifactId>
             <version>1.36.0</version>
@@ -64,9 +68,9 @@
                     <artifactId>google-http-client</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
+        </dependency> -->
 
-        <dependency>
+        <!-- <dependency>
             <groupId>com.google.api-client</groupId>
             <artifactId>google-api-client</artifactId>
             <version>2.6.0</version>
@@ -96,9 +100,9 @@
                     <artifactId>google-http-client</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
+        </dependency> -->
 
-        <dependency>
+        <!-- <dependency>
             <groupId>com.google.apis</groupId>
             <artifactId>google-api-services-sqladmin</artifactId>
             <version>v1beta4-rev20240925-2.0.0</version>
@@ -108,12 +112,12 @@
                     <artifactId>google-api-client</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
+        </dependency> -->
 
-        <dependency>
+        <!-- <dependency>
             <groupId>com.google.cloud.sql</groupId>
             <artifactId>jdbc-socket-factory-core</artifactId>
-            <version>1.21.0</version>
+            <version>1.24.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.api-client</groupId>
@@ -132,9 +136,9 @@
                     <artifactId>google-http-client</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
+        </dependency> -->
 
-        <dependency>
+        <!-- <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-oauth2-http</artifactId>
             <version>1.27.0</version>
@@ -204,18 +208,18 @@
                     <artifactId>google-http-client</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
+        </dependency> -->
 
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.4</version>
+            <version>42.7.5</version>
         </dependency>
 
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-            <version>6.2.1</version>
+            <version>6.3.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.truth</groupId>
@@ -232,7 +236,7 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-context</artifactId>
-            <version>1.60.1</version>
+            <version>1.71.0</version>
         </dependency>
         <!-- Tests use this model to generate embeddings -->
         <dependency>

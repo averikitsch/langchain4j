@@ -76,7 +76,6 @@ public class PostgresEmbeddingStoreIT {
                 .user(user)
                 .password(password)
                 .ipType(ipType)
-                .iamAccountEmail(iamEmail)
                 .build();
 
         List<MetadataColumn> metadataColumns = new ArrayList<>();

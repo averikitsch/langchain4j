@@ -53,8 +53,6 @@ public class PostgresEngineIT {
                 .database(database)
                 .user(user)
                 .password(password)
-                .ipType(ipType)
-                .iamAccountEmail(iamEmail)
                 .build();
 
         defaultConnection = engine.getConnection();
@@ -195,29 +193,7 @@ public class PostgresEngineIT {
                 .user(user)
                 .password(password)
                 .ipType(ipType)
-                .iamAccountEmail(iamEmail)
-                .iamAccountEmail(iamEmail)
                 .build();
-        try (Connection connection = iamEngine.getConnection(); ) {
-            ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
-            rs.next();
-            assertThat(rs.getInt(1)).isEqualTo(1);
-        }
-    }
-
-    @Test
-    void create_engine_with_get_iam_email() throws SQLException {
-        PostgresEngine iamEngine = new PostgresEngine.Builder()
-                .projectId(projectId)
-                .region(region)
-                .instance(instance)
-                .database(database)
-                .user(user)
-                .password(password)
-                .ipType(ipType)
-                .iamAccountEmail(iamEmail)
-                .build();
-
         try (Connection connection = iamEngine.getConnection(); ) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();

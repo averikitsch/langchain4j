@@ -1,20 +1,19 @@
 package dev.langchain4j.store.embedding.index;
 
 public enum DistanceStrategy {
-    EUCLIDEAN("<->", "l2_distance", "vector_l2_ops", "l2"),
-    COSINE_DISTANCE("<=>", "cosine_distance", "vector_cosine_ops", "cosine"),
-    INNER_PRODUCT("<#>", "inner_product", "vector_ip_ops", "dot_product");
+    EUCLIDEAN("<->", "l2_distance", "vector_l2_ops"),
+    COSINE_DISTANCE("<=>", "cosine_distance", "vector_cosine_ops"),
+    INNER_PRODUCT("<#>", "inner_product", "vector_ip_ops");
 
     private final String operator;
     private final String searchFunction;
     private final String indexFunction;
-    private final String scannIndexFunction;
 
     /** Constructor for DistanceStrategy */
-    private DistanceStrategy(String operator, String searchFunction, String indexFunction, String scannIndexFunction) {
+    private DistanceStrategy(String operator, String searchFunction, String indexFunction) {
         this.indexFunction = indexFunction;
         this.operator = operator;
-        this.scannIndexFunction = scannIndexFunction;
+
         this.searchFunction = searchFunction;
     }
 
@@ -43,14 +42,5 @@ public enum DistanceStrategy {
      */
     public String getIndexFunction() {
         return indexFunction;
-    }
-
-    /**
-     * get ScaNN index function
-     *
-     * @return DistanceStrategy's ScaNN index function
-     */
-    public String getScannIndexFunction() {
-        return scannIndexFunction;
     }
 }
