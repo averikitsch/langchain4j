@@ -1,18 +1,18 @@
-# CoudSQL for PostgreSQL Embedding Store for LangChain4j
+# CloudSQL for PostgreSQL Embedding Store for LangChain4j
 
 
-This module implements `EmbeddingStore` backed by an CoudSQL for PostgreSQL database.
+This module implements `EmbeddingStore` backed by an CloudSQL for PostgreSQL database.
 
 - [Product Documentation](https://cloud.google.com/sql)
 
-The **CoudSQL for LangChain** package provides a first class experience for connecting to
-CoudSQL instances from the LangChain ecosystem while providing the following benefits:
+The **CloudSQL for LangChain** package provides a first class experience for connecting to
+CloudSQL instances from the LangChain ecosystem while providing the following benefits:
 
 - **Simplified & Secure Connections**: easily and securely create shared connection pools to connect to Google Cloud databases utilizing IAM for authorization and database authentication without needing to manage SSL certificates, configure firewall rules, or enable authorized networks.
 - **Improved performance & Simplified management**: use a single-table schema can lead to faster query execution, especially for large collections.
 - **Improved metadata handling**: store metadata in columns instead of JSON, resulting in significant performance improvements.
 - **Clear separation**: clearly separate table and extension creation, allowing for distinct permissions and streamlined workflows.
-- **Better integration with CoudSQL**: built-in methods to take advantage of CoudSQL's advanced indexing and scalability capabilities.
+- **Better integration with CloudSQL**: built-in methods to take advantage of CloudSQL's advanced indexing and scalability capabilities.
 
 
 ## Quick Start
@@ -22,7 +22,7 @@ steps:
 
 1. [Select or create a Cloud Platform project.](https://console.cloud.google.com/project)
 2. [Enable billing for your project.](https://cloud.google.com/billing/docs/how-to/modify-project#enable_billing_for_a_project)
-3. [Enable the CoudSQL API.](https://console.cloud.google.com/flows/enableapi?apiid=sql.googleapis.com)
+3. [Enable the CloudSQL API.](https://console.cloud.google.com/flows/enableapi?apiid=sql.googleapis.com)
 4. [Setup Authentication.](https://googleapis.dev/python/google-api-core/latest/auth.html)
 
 
@@ -45,7 +45,7 @@ Java >= 17
 
 Instances of `PostgresEngine` can be created by configuring provided `Builder`. The `PostgresEngine` configures a connection pool to your Cloud SQL database, 
 enabling successful connections from your application and following industry best practices.
-Securely connect to CoudSQL by using the built-in [Cloud SQL Connector for Java](https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factor) using Builder
+Securely connect to CloudSQL by using the built-in [Cloud SQL Connector for Java](https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factor) using Builder
 options:
  - project id
  - region
@@ -83,7 +83,7 @@ import dev.langchain4j.engine.PostgresEngine;
 ```
 
 
-### initVectorStore
+### Create a Vector Store table
 `PostgresEngine` provides `initVectorStoreTable` method to initialize the vector store table, it requires a `EmbeddingStoreConfig` object that can be configured with its provided `Builder` it requires the following:
 - table name
 - vector size
@@ -99,8 +99,10 @@ import dev.langchain4j.engine.PostgresEngine;
 example usage:
 ```java
 ...
+import dev.langchain4j.engine.AlloyDBEngine;
 import dev.langchain4j.engine.EmbeddingStoreConfig;
 import dev.langchain4j.store.embedding.cloudsql.MetadataColumn;
+import java.util.ArrayList;
 ...
         List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
@@ -133,7 +135,16 @@ Use a vector store to store text embedded data and perform vector search, instan
 example usage:
 ```java
 ...
-    import dev.langchain4j.store.embedding.cloudsql.PostgresEmbeddingStore;
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.engine.AlloyDBEngine;
+import dev.langchain4j.engine.EmbeddingStoreConfig;
+import dev.langchain4j.store.embedding.cloudsql.MetadataColumn;
+import dev.langchain4j.store.embedding.cloudsql.PostgresEmbeddingStore;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import java.util.ArrayList;
 ...
 
     PostgresEmbeddingStore store = new PostgresEmbeddingStore.Builder(engine, TABLE_NAME)
