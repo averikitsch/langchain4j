@@ -16,9 +16,19 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class CloudsqlFilterMapper {
+/** Maps {@link Filter} objects into Cloudsql filter strings. */
+public class CloudSQLFilterMapper {
 
+    /**
+     * Maps {@link Filter} into a string
+     *
+     * @param filter the filter to be mapped
+     * @return Cloudsql compatible filter string
+     */
     public String map(Filter filter) {
+        if (filter == null) {
+            return "";
+        }
         if (filter instanceof IsEqualTo isEqualTo) {
             return mapEqual(isEqualTo);
         } else if (filter instanceof IsNotEqualTo isNotEqualTo) {
