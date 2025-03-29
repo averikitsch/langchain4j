@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-public class CloudsqlTestUtils {
+public class CloudSQLTestUtils {
     private static final Random RANDOM = new Random();
 
     public static PGvector randomPGvector(int length) {

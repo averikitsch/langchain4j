@@ -17,7 +17,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /** Maps {@link Filter} objects into Cloudsql filter strings. */
-public class CloudsqlFilterMapper {
+public class CloudSQLFilterMapper {
 
     /**
      * Maps {@link Filter} into a string

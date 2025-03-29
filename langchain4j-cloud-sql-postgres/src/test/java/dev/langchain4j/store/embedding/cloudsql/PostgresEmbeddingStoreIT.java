@@ -3,7 +3,7 @@ package dev.langchain4j.store.embedding.cloudsql;
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.utils.CloudsqlTestUtils.randomPGvector;
+import static dev.langchain4j.utils.CloudSQLTestUtils.randomPGvector;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

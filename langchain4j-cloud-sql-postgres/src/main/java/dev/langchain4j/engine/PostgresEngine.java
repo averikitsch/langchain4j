@@ -6,6 +6,9 @@ import static dev.langchain4j.internal.Utils.readBytes;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.sql.ConnectorConfig;
+import com.google.cloud.sql.ConnectorRegistry;
+import com.google.cloud.sql.RefreshStrategy;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.pgvector.PGvector;
@@ -23,15 +26,17 @@ import org.slf4j.LoggerFactory;
  * PostgresEngine
  *
  * <p>Instances of this store are created by configuring a builder: {@code PostgresEngine engine =
- * new PostgresEngine.Builder(projectId, region, cluster, instance, database).build(); } Uses
- * HikariCP as a DataSource. A connection pool that will avoid the latency of repeatedly creating
- * new database connections.
+ * new PostgresEngine.Builder(projectId, region, instance, database).build(); } Uses HikariCP as a
+ * DataSource. A connection pool that will avoid the latency of repeatedly creating new database
+ * connections.
  */
 public class PostgresEngine {
 
     private static final Logger log = LoggerFactory.getLogger(PostgresEngine.class.getName());
 
     private final HikariDataSource dataSource;
+    private static ConnectorConfig namedConnectorConfig;
+    private static final String USER_AGENT = "langchain4j-cloud-sql-pg";
 
     /**
      * Constructor for PostgresEngine
@@ -89,13 +94,21 @@ public class PostgresEngine {
 
     private HikariDataSource createConnectorDataSource(
             String database, String user, String password, String instanceName, String ipType, Boolean enableIAMAuth) {
-
+        if (namedConnectorConfig == null) {
+            namedConnectorConfig = new ConnectorConfig.Builder()
+                    .withRefreshStrategy(RefreshStrategy.LAZY)
+                    .build();
+            ConnectorRegistry.addArtifactId(USER_AGENT);
+            ConnectorRegistry.register("langchain-connector", namedConnectorConfig);
+        }
         HikariConfig config = new HikariConfig();
 
         config.setUsername(ensureNotBlank(user, "user"));
         if (enableIAMAuth) {
-            config.addDataSourceProperty("enableIAMAuth", "true");
+
+            config.addDataSourceProperty("enableIamAuth", "true");
         } else {
+
             config.setPassword(ensureNotBlank(password, "password"));
         }
 
@@ -103,6 +116,7 @@ public class PostgresEngine {
         config.addDataSourceProperty("socketFactory", "com.google.cloud.sql.postgres.SocketFactory");
         config.addDataSourceProperty("cloudSqlInstance", ensureNotBlank(instanceName, "instanceName"));
         config.addDataSourceProperty("ipType", ensureNotBlank(ipType, "ipType"));
+        config.addDataSourceProperty("cloudSqlNamedConnector", "langchain-connector");
 
         return new HikariDataSource(config);
     }
@@ -123,7 +137,6 @@ public class PostgresEngine {
                 ensureNotBlank(host, "host"), port, ensureNotBlank(database, "database")));
         config.setUsername(ensureNotBlank(user, "user"));
         config.setPassword(ensureNotBlank(password, "password"));
-        config.addDataSourceProperty("socketFactory", "com.google.cloud.sql.postgres.SocketFactory");
 
         return new HikariDataSource(config);
     }

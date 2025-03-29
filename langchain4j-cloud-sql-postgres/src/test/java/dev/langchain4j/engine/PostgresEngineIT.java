@@ -4,7 +4,7 @@ import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import dev.langchain4j.utils.CloudsqlTestUtils;
+import dev.langchain4j.utils.CloudSQLTestUtils;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -94,7 +94,7 @@ public class PostgresEngineIT {
         expectedNames.add("content");
         expectedNames.add("embedding");
 
-        CloudsqlTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedNames);
+        CloudSQLTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedNames);
     }
 
     @Test
@@ -113,7 +113,7 @@ public class PostgresEngineIT {
         expectedColumns.add("overwritten");
         expectedColumns.add("embedding");
 
-        CloudsqlTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedColumns);
+        CloudSQLTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedColumns);
     }
 
     @Test
@@ -141,7 +141,7 @@ public class PostgresEngineIT {
         expectedColumns.add("source");
         expectedColumns.add("custom_metadata_json_column");
 
-        CloudsqlTestUtils.verifyColumns(defaultConnection, CUSTOM_SCHEMA, CUSTOM_TABLE_NAME, expectedColumns);
+        CloudSQLTestUtils.verifyColumns(defaultConnection, CUSTOM_SCHEMA, CUSTOM_TABLE_NAME, expectedColumns);
     }
 
     @Test
@@ -190,9 +190,7 @@ public class PostgresEngineIT {
                 .region(region)
                 .instance(instance)
                 .database(database)
-                .user(user)
-                .password(password)
-                .ipType(ipType)
+                .iamAccountEmail(iamEmail)
                 .build();
         try (Connection connection = iamEngine.getConnection(); ) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");

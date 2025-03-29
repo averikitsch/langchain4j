@@ -20,7 +20,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.filter.CloudsqlFilterMapper;
+import dev.langchain4j.store.embedding.filter.CloudSQLFilterMapper;
 import dev.langchain4j.store.embedding.index.BaseIndex;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
 import dev.langchain4j.store.embedding.index.query.QueryOptions;
@@ -62,7 +62,7 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
     private List<String> metadataColumns;
     private final Integer k;
 
-    private final CloudsqlFilterMapper FILTER_MAPPER = new CloudsqlFilterMapper();
+    private final CloudSQLFilterMapper FILTER_MAPPER = new CloudSQLFilterMapper();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
 
     private QueryOptions queryOptions;
