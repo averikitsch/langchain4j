@@ -1,5 +1,6 @@
 package dev.langchain.data.document.loader.cloudsql;
 
+import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -17,6 +18,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class PostgresLoaderIT {
+
+    private static final String TABLE_NAME = "test_table" + randomUUID();
     private static String projectId;
     private static String region;
     private static String instance;
@@ -57,24 +60,27 @@ public class PostgresLoaderIT {
 
     private void createTableAndInsertData() throws SQLException {
         try (Statement statement = connection.createStatement()) {
-            statement.execute(
-                    "CREATE TABLE test_table (id SERIAL PRIMARY KEY, content TEXT, metadata TEXT, langchain_metadata JSONB)");
-            statement.execute(
-                    "INSERT INTO test_table (content, metadata, langchain_metadata) VALUES ('test content 1', 'test metadata 1', '{\"key\": \"value1\"}')");
-            statement.execute(
-                    "INSERT INTO test_table (content, metadata, langchain_metadata) VALUES ('test content 2', 'test metadata 2', '{\"key\": \"value2\"}')");
+            statement.execute(String.format(
+                    "CREATE TABLE \"%s\" (id SERIAL PRIMARY KEY, content TEXT, metadata TEXT, langchain_metadata JSONB)",
+                    TABLE_NAME));
+            statement.execute(String.format(
+                    "INSERT INTO \"%s\" (content, metadata, langchain_metadata) VALUES ('test content 1', 'test metadata 1', '{\"key\": \"value1\"}')",
+                    TABLE_NAME));
+            statement.execute(String.format(
+                    "INSERT INTO \"%s\" (content, metadata, langchain_metadata) VALUES ('test content 2', 'test metadata 2', '{\"key\": \"value2\"}')",
+                    TABLE_NAME));
         }
     }
 
     @AfterEach
     public void afterEach() throws SQLException {
-        connection.createStatement().executeUpdate("DROP TABLE IF EXISTS test_table");
+        connection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
     }
 
     @Test
     public void testLoadDocumentsFromDatabase() throws SQLException {
         PostgresLoader loader = new PostgresLoader.Builder(engine)
-                .tableName("test_table")
+                .tableName(TABLE_NAME)
                 .contentColumns(Arrays.asList("content"))
                 .metadataColumns(Arrays.asList("metadata"))
                 .metadataJsonColumn("langchain_metadata")
@@ -97,7 +103,8 @@ public class PostgresLoaderIT {
     @Test
     public void testLoadDocumentsWithCustomQuery() throws SQLException {
         PostgresLoader loader = new PostgresLoader.Builder(engine)
-                .query("SELECT content, metadata, langchain_metadata FROM test_table WHERE id = 1")
+                .query(String.format(
+                        "SELECT content, metadata, langchain_metadata FROM \"%s\" WHERE id = 1", TABLE_NAME))
                 .contentColumns(Arrays.asList("content"))
                 .metadataColumns(Arrays.asList("metadata"))
                 .metadataJsonColumn("langchain_metadata")
@@ -116,7 +123,7 @@ public class PostgresLoaderIT {
     @Test
     public void testLoadDocumentsWithTextFormatter() throws SQLException {
         PostgresLoader loader = new PostgresLoader.Builder(engine)
-                .tableName("test_table")
+                .tableName(TABLE_NAME)
                 .contentColumns(Arrays.asList("content"))
                 .metadataColumns(Arrays.asList("metadata"))
                 .metadataJsonColumn("langchain_metadata")
@@ -132,7 +139,7 @@ public class PostgresLoaderIT {
     @Test
     public void testLoadDocumentsWithCsvFormatter() throws SQLException {
         PostgresLoader loader = new PostgresLoader.Builder(engine)
-                .tableName("test_table")
+                .tableName(TABLE_NAME)
                 .contentColumns(Arrays.asList("content"))
                 .metadataColumns(Arrays.asList("metadata"))
                 .metadataJsonColumn("langchain_metadata")
@@ -148,7 +155,7 @@ public class PostgresLoaderIT {
     @Test
     public void testLoadDocumentsWithYamlFormatter() throws SQLException {
         PostgresLoader loader = new PostgresLoader.Builder(engine)
-                .tableName("test_table")
+                .tableName(TABLE_NAME)
                 .contentColumns(Arrays.asList("content"))
                 .metadataColumns(Arrays.asList("metadata"))
                 .metadataJsonColumn("langchain_metadata")
@@ -164,7 +171,7 @@ public class PostgresLoaderIT {
     @Test
     public void testLoadDocumentsWithJsonFormatter() throws SQLException {
         PostgresLoader loader = new PostgresLoader.Builder(engine)
-                .tableName("test_table")
+                .tableName(TABLE_NAME)
                 .contentColumns(Arrays.asList("content"))
                 .metadataColumns(Arrays.asList("metadata"))
                 .metadataJsonColumn("langchain_metadata")
