@@ -4,6 +4,7 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.utils.AlloyDBTestUtils.randomPGvector;
+import static dev.langchain4j.utils.AlloyDBTestUtils.verifyIndex;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,7 +21,10 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.index.BaseIndex;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
+import dev.langchain4j.store.embedding.index.HNSWIndex;
+import dev.langchain4j.store.embedding.index.IVFFlatIndex;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -45,6 +49,10 @@ public class AlloyDBEmbeddingStoreIT {
     private static final Integer VECTOR_SIZE = 384;
     private static final EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     private static EmbeddingStoreConfig embeddingStoreConfig;
+    private static String projectId;
+    private static String region;
+    private static String cluster;
+    private static String instance;
     private static String database;
     private static String user;
     private static String password;
@@ -55,16 +63,23 @@ public class AlloyDBEmbeddingStoreIT {
 
     @BeforeAll
     public static void beforeAll() throws SQLException {
+        projectId = System.getenv("ALLOYDB_PROJECT_ID");
+        region = System.getenv("ALLOYDB_REGION");
+        cluster = System.getenv("ALLOYDB_CLUSTER");
+        instance = System.getenv("ALLOYDB_INSTANCE");
         database = System.getenv("ALLOYDB_DB_NAME");
         user = System.getenv("ALLOYDB_USER");
         password = System.getenv("ALLOYDB_PASSWORD");
 
         engine = new AlloyDBEngine.Builder()
-                .host("127.0.0.1")
-                .port(5433)
+                .projectId(projectId)
+                .region(region)
+                .cluster(cluster)
+                .instance(instance)
                 .database(database)
                 .user(user)
                 .password(password)
+                .ipType("public")
                 .build();
 
         List<MetadataColumn> metadataColumns = new ArrayList<>();
@@ -466,5 +481,62 @@ public class AlloyDBEmbeddingStoreIT {
                 assertThat(match.embedded()).isNull();
             }
         }
+    }
+
+    @Test
+    void apply_vector_index() throws SQLException {
+        BaseIndex index = new HNSWIndex.Builder().name("test_hnsw").build();
+        store.applyVectorIndex(index, null, false);
+        verifyIndex(defaultConnection, TABLE_NAME, index.getName(), index.getIndexType());
+        store.dropVectorIndex(index.getName());
+    }
+
+    @Test
+    void drop_vector_index() throws SQLException {
+        BaseIndex index = new HNSWIndex.Builder().name("test_hnsw").build();
+        store.applyVectorIndex(index, null, false);
+        verifyIndex(defaultConnection, TABLE_NAME, index.getName(), index.getIndexType());
+        store.dropVectorIndex(index.getName());
+
+        ResultSet indexes = defaultConnection
+                .createStatement()
+                .executeQuery(String.format(
+                        "SELECT indexdef FROM pg_indexes WHERE tablename = '%s' AND indexname = '%s'",
+                        TABLE_NAME, index.getName()));
+        assertThat(indexes.isBeforeFirst())
+                .withFailMessage("there should be no indexes")
+                .isFalse();
+    }
+
+    @Test
+    void vector_store_reindex() throws SQLException {
+        BaseIndex index = new HNSWIndex.Builder().build();
+        String defaultIndexName = (TABLE_NAME + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX).toLowerCase();
+        store.applyVectorIndex(index, null, false);
+        verifyIndex(defaultConnection, TABLE_NAME, defaultIndexName, index.getIndexType());
+        store.reindex(null);
+        store.reindex(defaultIndexName);
+        store.dropVectorIndex(index.getName());
+    }
+
+    @Test
+    void apply_vector_index_ivfflat() throws SQLException {
+        BaseIndex index = new IVFFlatIndex.Builder()
+                .distanceStrategy(DistanceStrategy.EUCLIDEAN)
+                .name("test_ivfflat")
+                .build();
+        store.applyVectorIndex(index, index.getName(), true);
+        verifyIndex(defaultConnection, TABLE_NAME, index.getName(), index.getIndexType());
+
+        BaseIndex secondIndex;
+        secondIndex = new IVFFlatIndex.Builder()
+                .distanceStrategy(DistanceStrategy.INNER_PRODUCT)
+                .name("second_ivfflat")
+                .build();
+        store.applyVectorIndex(secondIndex, secondIndex.getName(), false);
+        verifyIndex(defaultConnection, TABLE_NAME, secondIndex.getName(), secondIndex.getIndexType());
+
+        store.dropVectorIndex(index.getName());
+        store.dropVectorIndex(secondIndex.getName());
     }
 }

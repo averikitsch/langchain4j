@@ -8,7 +8,7 @@ import java.util.List;
 public interface BaseIndex {
 
     /** base index name suffix */
-    final String DEFAULT_INDEX_NAME_SUFFIX = "langchainvectorindex";
+    final String DEFAULT_INDEX_NAME_SUFFIX = "_langchainvectorindex";
 
     /**
      * get  index query options
