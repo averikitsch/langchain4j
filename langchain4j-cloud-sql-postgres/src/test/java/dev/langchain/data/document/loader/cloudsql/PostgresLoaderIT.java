@@ -26,7 +26,6 @@ public class PostgresLoaderIT {
     private static String database;
     private static String user;
     private static String password;
-    private static String iamEmail;
 
     private static PostgresEngine engine;
     private static Connection connection;
@@ -39,7 +38,6 @@ public class PostgresLoaderIT {
         database = System.getenv("POSTGRES_DB");
         user = System.getenv("POSTGRES_USER");
         password = System.getenv("POSTGRES_PASS");
-        iamEmail = System.getenv("POSTGRES_IAM_EMAIL");
         engine = new PostgresEngine.Builder()
                 .projectId(projectId)
                 .region(region)
@@ -48,7 +46,6 @@ public class PostgresLoaderIT {
                 .user(user)
                 .password(password)
                 .ipType("public")
-                .iamAccountEmail(iamEmail)
                 .build();
         connection = engine.getConnection();
     }
