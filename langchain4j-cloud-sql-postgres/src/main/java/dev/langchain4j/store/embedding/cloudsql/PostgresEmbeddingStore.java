@@ -4,6 +4,7 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.internal.ValidationUtils.*;
 import static java.util.Collections.singletonList;
@@ -455,7 +456,7 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
         String query = String.format("REINDEX INDEX %s;", name);
         try (Connection conn = engine.getConnection(); ) {
-            conn.createStatement().executeQuery(query);
+            conn.createStatement().executeUpdate(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when reindexing "
@@ -475,13 +476,74 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param name, name of the index
      */
     public void dropVectorIndex(String name) {
+
         name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
         String query = String.format("DROP INDEX IF EXISTS %s;", name);
+
         try (Connection conn = engine.getConnection(); ) {
-            conn.createStatement().executeQuery(query);
+            conn.createStatement().executeUpdate(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
                     "Exception caught when removing "
+                            + name
+                            + " index in vector store table: \""
+                            + schemaName
+                            + "\".\""
+                            + tableName
+                            + "\"",
+                    ex);
+        }
+    }
+
+    /**
+     * Create index in the vector store table
+     *
+     * @param index, index to be applied
+     * @param name, name of the index
+     * @param concurrently, CONCURRENTLY option
+     */
+    public void applyVectorIndex(BaseIndex index, String name, Boolean concurrently) {
+        String function;
+        if (index == null) {
+            dropVectorIndex(null);
+            return;
+        }
+        if (isNullOrBlank(name)) {
+            if (isNotNullOrBlank(index.getName())) {
+                name = index.getName();
+            } else {
+                name = tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
+            }
+        }
+
+        try (Connection conn = engine.getConnection(); ) {
+            function = index.getDistanceStrategy().getIndexFunction();
+
+            String filter = (index.getPartialIndexes() != null
+                            && index.getPartialIndexes().isEmpty())
+                    ? String.format("WHERE %s", String.join(", ", index.getPartialIndexes()))
+                    : "";
+            String params = String.format("WITH %s", index.getIndexOptions());
+
+            String concurrentlyString = concurrently ? "CONCURRENTLY" : "";
+
+            String stmt = String.format(
+                    "CREATE INDEX %s %s ON \"%s\".\"%s\" USING %s (%s %s) %s %s;",
+                    concurrentlyString,
+                    name,
+                    schemaName,
+                    tableName,
+                    index.getIndexType(),
+                    embeddingColumn,
+                    function,
+                    params,
+                    filter);
+
+            conn.createStatement().executeUpdate(stmt);
+
+        } catch (SQLException ex) {
+            throw new RuntimeException(
+                    "Exception caught when creating "
                             + name
                             + " index in vector store table: \""
                             + schemaName

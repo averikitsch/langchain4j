@@ -4,6 +4,7 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.utils.CloudSQLTestUtils.randomPGvector;
+import static dev.langchain4j.utils.CloudSQLTestUtils.verifyIndex;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,7 +21,10 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.index.BaseIndex;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
+import dev.langchain4j.store.embedding.index.HNSWIndex;
+import dev.langchain4j.store.embedding.index.IVFFlatIndex;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -470,5 +474,62 @@ public class PostgresEmbeddingStoreIT {
                         .isTrue();
             }
         }
+    }
+
+    @Test
+    void apply_vector_index() throws SQLException {
+        BaseIndex index = new HNSWIndex.Builder().name("test_hnsw").build();
+        store.applyVectorIndex(index, null, false);
+        verifyIndex(defaultConnection, TABLE_NAME, index.getName(), index.getIndexType());
+        store.dropVectorIndex(index.getName());
+    }
+
+    @Test
+    void drop_vector_index() throws SQLException {
+        BaseIndex index = new HNSWIndex.Builder().name("test_hnsw").build();
+        store.applyVectorIndex(index, null, false);
+        verifyIndex(defaultConnection, TABLE_NAME, index.getName(), index.getIndexType());
+        store.dropVectorIndex(index.getName());
+
+        ResultSet indexes = defaultConnection
+                .createStatement()
+                .executeQuery(String.format(
+                        "SELECT indexdef FROM pg_indexes WHERE tablename = '%s' AND indexname = '%s'",
+                        TABLE_NAME, index.getName()));
+        assertThat(indexes.isBeforeFirst())
+                .withFailMessage("there should be no indexes")
+                .isFalse();
+    }
+
+    @Test
+    void vector_store_reindex() throws SQLException {
+        BaseIndex index = new HNSWIndex.Builder().build();
+        String defaultIndexName = (TABLE_NAME + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX).toLowerCase();
+        store.applyVectorIndex(index, null, false);
+        verifyIndex(defaultConnection, TABLE_NAME, defaultIndexName, index.getIndexType());
+        store.reindex(null);
+        store.reindex(defaultIndexName);
+        store.dropVectorIndex(index.getName());
+    }
+
+    @Test
+    void apply_vector_index_ivfflat() throws SQLException {
+        BaseIndex index = new IVFFlatIndex.Builder()
+                .distanceStrategy(DistanceStrategy.EUCLIDEAN)
+                .name("test_ivfflat")
+                .build();
+        store.applyVectorIndex(index, index.getName(), true);
+        verifyIndex(defaultConnection, TABLE_NAME, index.getName(), index.getIndexType());
+
+        BaseIndex secondIndex;
+        secondIndex = new IVFFlatIndex.Builder()
+                .distanceStrategy(DistanceStrategy.INNER_PRODUCT)
+                .name("second_ivfflat")
+                .build();
+        store.applyVectorIndex(secondIndex, secondIndex.getName(), false);
+        verifyIndex(defaultConnection, TABLE_NAME, secondIndex.getName(), secondIndex.getIndexType());
+
+        store.dropVectorIndex(index.getName());
+        store.dropVectorIndex(secondIndex.getName());
     }
 }

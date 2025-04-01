@@ -54,7 +54,7 @@ public class IVFFlatIndex implements BaseIndex {
     }
 
     /** Builder which configures and creates instances of {@link IVFFlatIndex}. */
-    public class Builder {
+    public static class Builder {
 
         private String name;
         private Integer listCount = 100;
